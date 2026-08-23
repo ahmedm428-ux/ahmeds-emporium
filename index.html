@@ -787,6 +787,27 @@
             animateFog();
             initApp();
         }
-    </script>
+        function openGameModal(url) {
+    document.getElementById('gameIframe').src = url;
+    document.getElementById('gameModal').classList.remove('hidden');
+  }
+
+  function closeGameModal() {
+    document.getElementById('gameIframe').src = '';
+    document.getElementById('gameModal').classList.add('hidden');
+  }
+</script>
+
+<!-- Embedded Game Modal -->
+<div id="gameModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
+  <div class="relative w-full max-w-5xl h-[85vh] bg-slate-900 border border-amber-500/30 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+    <div class="flex justify-between items-center px-4 py-3 bg-slate-950 border-b border-amber-500/20 text-amber-200">
+      <span class="font-bold tracking-wider">Pill Soccer Artifact</span>
+      <button onclick="closeGameModal()" class="text-slate-400 hover:text-white font-bold text-xl px-2">&times;</button>
+    </div>
+    <iframe id="gameIframe" src="" class="w-full h-full border-none"></iframe>
+  </div>
+</div>
+
 </body>
 </html>
