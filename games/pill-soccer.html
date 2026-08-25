@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pill Soccer - Lord of the Mysteries Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Outfit:wght@400;600;800;900&display=swap');
+        
+        body {
+            font-family: 'Cinzel', serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background: #06030b;
+        }
+
+        .lotm-bg {
+            background: radial-gradient(circle at 50% 30%, #1e092b 0%, #0d0416 60%, #040108 100%);
+        }
+
+        .glass-panel {
+            background: rgba(15, 10, 28, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(217, 119, 6, 0.35);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+        }
+
+        .neon-glow-crimson {
+            box-shadow: 0 0 25px rgba(225, 29, 72, 0.5);
+        }
+
+        .glow-text-gold {
+            text-shadow: 0 0 15px rgba(234, 179, 8, 0.8);
+        }
+
+        .glow-text-purple {
+            text-shadow: 0 0 15px rgba(168, 85, 247, 0.8);
+        }
+
+        .btn-bounce {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-bounce:hover {
+            transform: translateY(-2px) scale(1.02);
+            border-color: rgba(245, 158, 11, 0.8);
+        }
+        .btn-bounce:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .touch-btn {
+            background: rgba(23, 15, 38, 0.75);
+            border: 2px solid rgba(217, 119, 6, 0.4);
+            backdrop-filter: blur(8px);
+        }
+        .touch-btn:active {
+            background: rgba(225, 29, 72, 0.5);
+        }
+        
+        /* Power meter animation */
+        .power-bar-fill {
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body class="lotm-bg text-slate-100 h-screen w-screen flex flex-col justify-between overflow-hidden">
+
+    <!-- Top HUD / Header -->
+    <header id="gameHud" class="absolute top-0 left-0 w-full p-4 z-20 flex justify-between items-center pointer-events-none">
+        <!-- Player 1 Score & Beyonder Power HUD -->
+        <div class="flex items-center space-x-3 pointer-events-auto">
+            <div id="hudP1SkinIcon" class="w-12 h-12 rounded-2xl glass-panel p-1 border-2 border-amber-600/60 flex items-center justify-center text-2xl shadow-lg">
+                🃏
+            </div>
+            <div>
+                <div id="hudP1Name" class="text-xs font-bold uppercase tracking-widest text-amber-400">The Fool</div>
+                <div id="hudP1Score" class="text-4xl font-black text-amber-100 leading-none glow-text-gold">0</div>
+                <!-- P1 Power Gauge -->
+                <div class="w-24 h-2 bg-slate-900 rounded-full mt-1 border border-amber-500/30 overflow-hidden">
+                    <div id="p1PowerBar" class="h-full bg-gradient-to-r from-amber-500 to-purple-500 w-0 power-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Match Info / Crimson Moon Era -->
+        <div class="glass-panel px-6 py-2 rounded-2xl flex flex-col items-center pointer-events-auto border border-amber-500/40 shadow-2xl">
+            <div class="text-[10px] font-extrabold uppercase tracking-widest text-rose-400 flex items-center gap-1">
+                <i class="fas fa-moon text-rose-500"></i> Beyonder League
+            </div>
+            <div id="matchTime" class="text-2xl font-black font-mono tracking-widest text-amber-300">01:30</div>
+            <div id="matchTarget" class="text-[9px] font-bold uppercase tracking-widest text-slate-400">First to 5 Goals</div>
+        </div>
+
+        <!-- Player 2 Score & Beyonder Power HUD -->
+        <div class="flex items-center space-x-3 pointer-events-auto flex-row-reverse space-x-reverse">
+            <div id="hudP2SkinIcon" class="w-12 h-12 rounded-2xl glass-panel p-1 border-2 border-purple-600/60 flex items-center justify-center text-2xl shadow-lg">
+                🧐
+            </div>
+            <div class="text-right">
+                <div id="hudP2Name" class="text-xs font-bold uppercase tracking-widest text-purple-400">Amon</div>
+                <div id="hudP2Score" class="text-4xl font-black text-amber-100 leading-none glow-text-gold">0</div>
+                <!-- P2 Power Gauge -->
+                <div class="w-24 h-2 bg-slate-900 rounded-full mt-1 border border-purple-500/30 overflow-hidden ml-auto">
+                    <div id="p2PowerBar" class="h-full bg-gradient-to-r from-purple-500 to-rose-500 w-0 power-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Top Right Quick Controls -->
+    <div class="absolute top-4 right-4 z-30 flex space-x-2 pointer-events-auto">
+        <button id="btnSoundToggle" class="w-10 h-10 rounded-xl glass-panel flex items-center justify-center hover:bg-white/20 transition">
+            <i id="soundIcon" class="fas fa-volume-high text-slate-200"></i>
+        </button>
+        <button id="btnPause" class="w-10 h-10 rounded-xl glass-panel flex items-center justify-center hover:bg-white/20 transition hidden">
+            <i class="fas fa-pause text-slate-200"></i>
+        </button>
+    </div>
+
+    <!-- Main Game Canvas Container -->
+    <div id="canvasContainer" class="relative w-full h-full flex-grow">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Goal Banner Overlay -->
+        <div id="goalBanner" class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300 z-20">
+            <div class="text-center transform scale-75 transition-transform duration-300 id-goal-transform">
+                <h1 class="text-7xl md:text-9xl font-black tracking-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-red-500 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] italic">
+                    GOAL!!!
+                </h1>
+                <p id="goalScorerText" class="text-xl md:text-3xl font-bold text-white uppercase tracking-widest mt-2 drop-shadow-lg">
+                    THE FOOL SCORED!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="mainMenu" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div class="w-full max-w-2xl glass-panel rounded-3xl p-6 md:p-8 border border-amber-600/40 shadow-2xl flex flex-col justify-between max-h-[95vh] overflow-y-auto">
+            
+            <!-- Title -->
+            <div class="text-center mb-5">
+                <div class="inline-block px-4 py-1 bg-gradient-to-r from-purple-950 via-rose-950 to-amber-950 rounded-full text-[10px] font-black tracking-widest uppercase mb-2 border border-amber-500/30 text-amber-300">
+                    ✨ Classic Head Soccer • Beyonder Edition
+                </div>
+                <h1 class="text-3xl md:text-5xl font-black tracking-tight text-amber-100 italic drop-shadow-md">
+                    PILL <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-amber-400 to-rose-500 glow-text-purple">SOCCER</span>
+                </h1>
+                <p class="text-rose-300/80 text-xs mt-1 font-mono">Praise The Fool! Classic Head Soccer with Boots, Beyonder Powers & Monocles!</p>
+            </div>
+
+            <!-- Mode Selector -->
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <button id="btnMode1P" onclick="selectGameMode('1P')" class="p-4 rounded-2xl glass-panel border-2 border-amber-500/80 bg-amber-500/10 flex flex-col items-center btn-bounce">
+                    <i class="fas fa-robot text-3xl text-amber-400 mb-2"></i>
+                    <span class="font-extrabold text-sm tracking-wider">1 Player vs AI</span>
+                    <span class="text-[10px] text-slate-400">Battle sequence bot</span>
+                </button>
+                <button id="btnMode2P" onclick="selectGameMode('2P')" class="p-4 rounded-2xl glass-panel border-2 border-white/10 flex flex-col items-center btn-bounce hover:border-purple-400/80">
+                    <i class="fas fa-users text-3xl text-purple-400 mb-2"></i>
+                    <span class="font-extrabold text-sm tracking-wider">2 Players Local</span>
+                    <span class="text-[10px] text-slate-400">WASD vs Arrow Keys</span>
+                </button>
+            </div>
+
+            <!-- Character Selection -->
+            <div class="mb-5">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-amber-400">Select Beyonder Character</h3>
+                    <span class="text-xs text-purple-300 font-semibold"><i class="fas fa-bolt mr-1"></i> Power Shots Enabled</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Player 1 Skin Picker -->
+                    <div class="bg-slate-950/70 p-3 rounded-2xl border border-rose-500/40">
+                        <label class="block text-[11px] font-bold text-rose-400 mb-2 uppercase tracking-wider">Player 1 (WASD)</label>
+                        <select id="p1SkinSelect" onchange="updateSkinPreview('P1', this.value)" class="w-full bg-slate-900 border border-amber-600/40 rounded-xl px-3 py-2 text-xs font-bold text-amber-100 focus:outline-none focus:border-amber-400">
+                            <option value="fool" selected>🃏 The Fool (Miracle Kick)</option>
+                            <option value="amon">🧐 Amon (Time Theft)</option>
+                            <option value="obama">🇺🇸 Beyonder Obama (Executive Order)</option>
+                            <option value="evernight">🌙 Evernight Goddess (Concealment)</option>
+                            <option value="tyrant">⚡ Tyrant (Lightning Strike)</option>
+                            <option value="gold">🔮 Wheel of Fortune (Probability Shift)</option>
+                        </select>
+                    </div>
+
+                    <!-- Player 2 Skin Picker -->
+                    <div class="bg-slate-950/70 p-3 rounded-2xl border border-purple-500/40">
+                        <label id="p2SkinLabel" class="block text-[11px] font-bold text-purple-400 mb-2 uppercase tracking-wider">Player 2 (Arrows)</label>
+                        <select id="p2SkinSelect" onchange="updateSkinPreview('P2', this.value)" class="w-full bg-slate-900 border border-purple-600/40 rounded-xl px-3 py-2 text-xs font-bold text-amber-100 focus:outline-none focus:border-purple-400">
+                            <option value="amon" selected>🧐 Amon (Time Theft)</option>
+                            <option value="fool">🃏 The Fool (Miracle Kick)</option>
+                            <option value="obama">🇺🇸 Beyonder Obama (Executive Order)</option>
+                            <option value="evernight">🌙 Evernight Goddess (Concealment)</option>
+                            <option value="tyrant">⚡ Tyrant (Lightning Strike)</option>
+                            <option value="gold">🔮 Wheel of Fortune (Probability Shift)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Info Card -->
+            <div class="bg-slate-950/90 p-4 rounded-2xl border border-amber-500/20 mb-5 text-xs text-slate-300">
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="border-r border-slate-800 pr-2">
+                        <div class="font-bold text-rose-400 mb-1 tracking-wider text-[11px]">PLAYER 1 (WASD)</div>
+                        <div class="text-[10px] font-mono">A/D: Move | W: Jump</div>
+                        <div class="text-[10px] font-mono mt-0.5">S: Kick | SPACE: Beyonder Power</div>
+                    </div>
+                    <div class="pl-2">
+                        <div class="font-bold text-purple-400 mb-1 tracking-wider text-[11px]">PLAYER 2 (ARROWS)</div>
+                        <div class="text-[10px] font-mono">←/→: Move | ↑: Jump</div>
+                        <div class="text-[10px] font-mono mt-0.5">↓: Kick | ENTER: Beyonder Power</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Match Button -->
+            <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-rose-700 via-purple-700 to-amber-600 hover:from-rose-600 hover:to-amber-500 rounded-2xl font-black text-lg uppercase tracking-widest text-amber-100 shadow-xl neon-glow-crimson btn-bounce flex items-center justify-center space-x-2 border border-amber-400/40">
+                <i class="fas fa-trophy text-xl text-amber-300"></i>
+                <span>START MATCH!</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div id="gameOverMenu" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md hidden">
+        <div class="w-full max-w-md glass-panel rounded-3xl p-8 border border-white/20 text-center shadow-2xl">
+            <div id="winnerEmoji" class="text-6xl mb-2">🏆</div>
+            <h2 id="winnerTitle" class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 uppercase tracking-tight">
+                THE FOOL WINS!
+            </h2>
+            <p id="winnerSubtitle" class="text-slate-300 font-semibold mt-1 mb-6">Final Score: 5 - 3</p>
+
+            <div class="flex flex-col space-y-3">
+                <button onclick="startGame()" class="w-full py-3.5 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-black rounded-2xl text-lg uppercase tracking-wider btn-bounce shadow-lg">
+                    <i class="fas fa-rotate-right mr-2"></i> Rematch
+                </button>
+                <button onclick="returnToMainMenu()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-sm uppercase tracking-wider btn-bounce">
+                    <i class="fas fa-bars mr-2"></i> Main Menu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onscreen Touch Controls for Touch Devices -->
+    <div id="touchControls" class="absolute bottom-4 inset-x-4 z-30 justify-between items-end pointer-events-none hidden md:hidden flex">
+        <!-- P1 Touch -->
+        <div class="flex space-x-2 pointer-events-auto">
+            <button id="btnTouchP1Left" class="touch-btn w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white"><i class="fas fa-arrow-left"></i></button>
+            <button id="btnTouchP1Right" class="touch-btn w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white"><i class="fas fa-arrow-right"></i></button>
+            <button id="btnTouchP1Jump" class="touch-btn w-12 h-12 rounded-2xl bg-red-600/40 flex items-center justify-center text-xl font-bold text-white"><i class="fas fa-arrow-up"></i></button>
+            <button id="btnTouchP1Kick" class="touch-btn w-12 h-12 rounded-2xl bg-yellow-500/40 flex items-center justify-center text-xs font-black text-yellow-300">KICK</button>
+            <button id="btnTouchP1Power" class="touch-btn w-12 h-12 rounded-2xl bg-purple-600/60 flex items-center justify-center text-xs font-black text-purple-200">POWER</button>
+        </div>
+        <!-- P2 Touch (Only shown in 2P mode) -->
+        <div id="p2TouchBox" class="flex space-x-2 pointer-events-auto hidden">
+            <button id="btnTouchP2Power" class="touch-btn w-12 h-12 rounded-2xl bg-purple-600/60 flex items-center justify-center text-xs font-black text-purple-200">POWER</button>
+            <button id="btnTouchP2Kick" class="touch-btn w-12 h-12 rounded-2xl bg-yellow-500/40 flex items-center justify-center text-xs font-black text-yellow-300">KICK</button>
+            <button id="btnTouchP2Jump" class="touch-btn w-12 h-12 rounded-2xl bg-blue-600/40 flex items-center justify-center text-xl font-bold text-white"><i class="fas fa-arrow-up"></i></button>
+            <button id="btnTouchP2Left" class="touch-btn w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white"><i class="fas fa-arrow-left"></i></button>
+            <button id="btnTouchP2Right" class="touch-btn w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white"><i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <script>
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+            }
+
+            playKick() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(45, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+
+            playJump() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(280, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(560, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playPowerShot() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.4);
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 0.4);
+            }
+
+            playGoal() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                [261.63, 329.63, 392.00, 523.25].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.7);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.7);
+                });
+            }
+
+            playWhistle() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1600, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(2200, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+        }
+
+        const sound = new SoundFX();
+
+        const Engine = Matter.Engine,
+              Bodies = Matter.Bodies,
+              Body = Matter.Body,
+              Composite = Matter.Composite,
+              Events = Matter.Events,
+              Vector = Matter.Vector;
+
+        let engine, world;
+        let canvas, ctx;
+        let p1Body, p2Body, ballBody;
+        let goalLeftSensor, goalRightSensor;
+        let pitchWidth = 1000, pitchHeight = 600;
+        let scaleFactor = 1;
+
+        let gameMode = '1P';
+        let p1Skin = 'fool';
+        let p2Skin = 'amon';
+        let p1Score = 0;
+        let p2Score = 0;
+        let matchTimer = 90;
+        let matchInterval = null;
+        let isGameRunning = false;
+        let isGoalScored = false;
+        let targetGoals = 5;
+
+        // Kick Boot Animation States
+        let p1KickAngle = 0;
+        let p2KickAngle = 0;
+        let p1KickTimer = 0;
+        let p2KickTimer = 0;
+
+        // Beyonder Power Gauge (0 to 100)
+        let p1Power = 0;
+        let p2Power = 0;
+        let p1PowerActive = false;
+        let p2PowerActive = false;
+        let p1PowerDuration = 0;
+        let p2PowerDuration = 0;
+
+        const keys = {};
+
+        const SKINS = {
+            fool: {
+                name: "The Fool",
+                ability: "Miracle Kick",
+                icon: "🃏",
+                primaryColor: "#0f172a",
+                secondaryColor: "#a855f7",
+                skinTone: "#f5d0c5",
+                auraColor: "rgba(168, 85, 247, 0.5)"
+            },
+            amon: {
+                name: "Amon",
+                ability: "Time Theft",
+                icon: "🧐",
+                primaryColor: "#111827",
+                secondaryColor: "#f59e0b",
+                skinTone: "#fae8e0",
+                auraColor: "rgba(245, 158, 11, 0.5)"
+            },
+            obama: {
+                name: "Beyonder Obama",
+                ability: "Executive Order",
+                icon: "🇺🇸",
+                primaryColor: "#0f172a",
+                secondaryColor: "#e11d48",
+                skinTone: "#8d5524",
+                auraColor: "rgba(225, 29, 72, 0.4)"
+            },
+            evernight: {
+                name: "Evernight Goddess",
+                ability: "Concealment",
+                icon: "🌙",
+                primaryColor: "#1e1b4b",
+                secondaryColor: "#38bdf8",
+                skinTone: "#f8fafc",
+                auraColor: "rgba(56, 189, 248, 0.5)"
+            },
+            tyrant: {
+                name: "Lord of Storms",
+                ability: "Lightning Strike",
+                icon: "⚡",
+                primaryColor: "#0369a1",
+                secondaryColor: "#38bdf8",
+                skinTone: "#d1d5db",
+                auraColor: "rgba(14, 165, 233, 0.6)"
+            },
+            gold: {
+                name: "Wheel of Fortune",
+                ability: "Probability Shift",
+                icon: "🔮",
+                primaryColor: "#ca8a04",
+                secondaryColor: "#fef08a",
+                skinTone: "#fde047",
+                auraColor: "rgba(250, 204, 21, 0.5)"
+            }
+        };
+
+        function initPhysics() {
+            engine = Engine.create({
+                gravity: { x: 0, y: 1.25 }
+            });
+            world = engine.world;
+
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            if (!container) return;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            pitchWidth = canvas.width;
+            pitchHeight = canvas.height;
+            scaleFactor = Math.min(pitchWidth / 1000, pitchHeight / 600);
+            if (isGameRunning) {
+                buildField();
+            }
+        }
+
+        function buildField() {
+            Composite.clear(world, false);
+
+            const floorY = pitchHeight - 40 * scaleFactor;
+            const wallThick = 60 * scaleFactor;
+            const goalWidth = 110 * scaleFactor;
+            const goalHeight = 180 * scaleFactor;
+
+            // Boundaries
+            const floor = Bodies.rectangle(pitchWidth / 2, pitchHeight - 20 * scaleFactor, pitchWidth * 2, 40 * scaleFactor, { isStatic: true, friction: 0.8 });
+            const ceiling = Bodies.rectangle(pitchWidth / 2, -20 * scaleFactor, pitchWidth * 2, 40 * scaleFactor, { isStatic: true });
+            const leftWall = Bodies.rectangle(-wallThick / 2, pitchHeight / 2, wallThick, pitchHeight * 2, { isStatic: true });
+            const rightWall = Bodies.rectangle(pitchWidth + wallThick / 2, pitchHeight / 2, wallThick, pitchHeight * 2, { isStatic: true });
+
+            // Goal Posts & Crossbars
+            const leftCrossbar = Bodies.rectangle(goalWidth / 2, floorY - goalHeight, goalWidth, 16 * scaleFactor, { isStatic: true, restitution: 0.85 });
+            const rightCrossbar = Bodies.rectangle(pitchWidth - goalWidth / 2, floorY - goalHeight, goalWidth, 16 * scaleFactor, { isStatic: true, restitution: 0.85 });
+            const leftGoalBack = Bodies.rectangle(5, floorY - goalHeight / 2, 10, goalHeight, { isStatic: true });
+            const rightGoalBack = Bodies.rectangle(pitchWidth - 5, floorY - goalHeight / 2, 10, goalHeight, { isStatic: true });
+
+            // Goal Sensors
+            goalLeftSensor = Bodies.rectangle(goalWidth / 2, floorY - goalHeight / 2, goalWidth * 0.8, goalHeight * 0.8, { isSensor: true, isStatic: true });
+            goalRightSensor = Bodies.rectangle(pitchWidth - goalWidth / 2, floorY - goalHeight / 2, goalWidth * 0.8, goalHeight * 0.8, { isSensor: true, isStatic: true });
+
+            // Player Bodies (Classic Pill Capsules)
+            const pWidth = 48 * scaleFactor;
+            const pHeight = 92 * scaleFactor;
+
+            p1Body = Bodies.rectangle(pitchWidth * 0.25, floorY - pHeight, pWidth, pHeight, {
+                chamfer: { radius: pWidth / 2 },
+                friction: 0.1,
+                restitution: 0.1,
+                density: 0.005
+            });
+
+            p2Body = Bodies.rectangle(pitchWidth * 0.75, floorY - pHeight, pWidth, pHeight, {
+                chamfer: { radius: pWidth / 2 },
+                friction: 0.1,
+                restitution: 0.1,
+                density: 0.005
+            });
+
+            // Soccer Ball
+            const ballRadius = 22 * scaleFactor;
+            ballBody = Bodies.circle(pitchWidth / 2, floorY - 220 * scaleFactor, ballRadius, {
+                restitution: 0.88,
+                friction: 0.03,
+                frictionAir: 0.004,
+                density: 0.002
+            });
+
+            Composite.add(world, [
+                floor, ceiling, leftWall, rightWall,
+                leftCrossbar, rightCrossbar, leftGoalBack, rightGoalBack,
+                goalLeftSensor, goalRightSensor,
+                p1Body, p2Body, ballBody
+            ]);
+        }
+
+        function checkCollisions() {
+            Events.on(engine, 'collisionStart', (event) => {
+                if (!isGameRunning || isGoalScored) return;
+
+                event.pairs.forEach((pair) => {
+                    const { bodyA, bodyB } = pair;
+
+                    // Charge power meters on ball collision with players
+                    if ((bodyA === ballBody && (bodyB === p1Body || bodyB === p2Body)) ||
+                        (bodyB === ballBody && (bodyA === p1Body || bodyA === p2Body))) {
+                        p1Power = Math.min(100, p1Power + 12);
+                        p2Power = Math.min(100, p2Power + 12);
+                        updatePowerBars();
+                    }
+
+                    const isBallLeftGoal = (bodyA === ballBody && bodyB === goalLeftSensor) || (bodyB === ballBody && bodyA === goalLeftSensor);
+                    const isBallRightGoal = (bodyA === ballBody && bodyB === goalRightSensor) || (bodyB === ballBody && bodyA === goalRightSensor);
+
+                    if (isBallLeftGoal) {
+                        handleGoal('P2');
+                    } else if (isBallRightGoal) {
+                        handleGoal('P1');
+                    }
+                });
+            });
+        }
+
+        function handleGoal(scorer) {
+            isGoalScored = true;
+            sound.playGoal();
+
+            if (scorer === 'P1') {
+                p1Score++;
+            } else {
+                p2Score++;
+            }
+            updateScoreHud();
+
+            const goalBanner = document.getElementById('goalBanner');
+            const goalText = document.getElementById('goalScorerText');
+            const scorerName = scorer === 'P1' ? SKINS[p1Skin].name : (gameMode === '1P' ? "AI BOT" : SKINS[p2Skin].name);
+            
+            goalText.innerText = `${scorerName.toUpperCase()} SCORED!`;
+            goalBanner.classList.remove('opacity-0');
+            goalBanner.classList.add('opacity-100');
+
+            setTimeout(() => {
+                goalBanner.classList.remove('opacity-100');
+                goalBanner.classList.add('opacity-0');
+
+                if (p1Score >= targetGoals || p2Score >= targetGoals) {
+                    endGame();
+                } else {
+                    resetPositions();
+                    isGoalScored = false;
+                }
+            }, 1800);
+        }
+
+        function resetPositions() {
+            const floorY = pitchHeight - 40 * scaleFactor;
+            Body.setPosition(p1Body, { x: pitchWidth * 0.25, y: floorY - 100 * scaleFactor });
+            Body.setVelocity(p1Body, { x: 0, y: 0 });
+            Body.setAngle(p1Body, 0);
+
+            Body.setPosition(p2Body, { x: pitchWidth * 0.75, y: floorY - 100 * scaleFactor });
+            Body.setVelocity(p2Body, { x: 0, y: 0 });
+            Body.setAngle(p2Body, 0);
+
+            Body.setPosition(ballBody, { x: pitchWidth / 2, y: floorY - 220 * scaleFactor });
+            Body.setVelocity(ballBody, { x: 0, y: 0 });
+        }
+
+        function updateScoreHud() {
+            document.getElementById('hudP1Score').innerText = p1Score;
+            document.getElementById('hudP2Score').innerText = p2Score;
+        }
+
+        function updatePowerBars() {
+            document.getElementById('p1PowerBar').style.width = `${p1Power}%`;
+            document.getElementById('p2PowerBar').style.width = `${p2Power}%`;
+        }
+
+        function triggerKick(player) {
+            const ballPos = ballBody.position;
+            sound.playKick();
+
+            if (player === 'P1') {
+                p1KickTimer = 12; // 12 frames boot swing
+                const p1Pos = p1Body.position;
+                const dist = Math.hypot(ballPos.x - (p1Pos.x + 25 * scaleFactor), ballPos.y - p1Pos.y);
+
+                if (dist < 75 * scaleFactor) {
+                    const kickVector = { x: 0.028 * scaleFactor * ballBody.mass, y: -0.018 * scaleFactor * ballBody.mass };
+                    Body.applyForce(ballBody, ballPos, kickVector);
+                }
+            } else {
+                p2KickTimer = 12;
+                const p2Pos = p2Body.position;
+                const dist = Math.hypot(ballPos.x - (p2Pos.x - 25 * scaleFactor), ballPos.y - p2Pos.y);
+
+                if (dist < 75 * scaleFactor) {
+                    const kickVector = { x: -0.028 * scaleFactor * ballBody.mass, y: -0.018 * scaleFactor * ballBody.mass };
+                    Body.applyForce(ballBody, ballPos, kickVector);
+                }
+            }
+        }
+
+        function activateBeyonderPower(player) {
+            if (player === 'P1' && p1Power >= 100 && !p1PowerActive) {
+                p1Power = 0;
+                p1PowerActive = true;
+                p1PowerDuration = 120; // 2 seconds
+                sound.playPowerShot();
+                updatePowerBars();
+
+                // Apply skin-specific power shot
+                const skin = p1Skin;
+                if (skin === 'fool' || skin === 'tyrant') {
+                    Body.setVelocity(ballBody, { x: 18 * scaleFactor, y: -6 * scaleFactor });
+                } else if (skin === 'amon') {
+                    Body.setVelocity(ballBody, { x: 0, y: -10 * scaleFactor });
+                } else {
+                    Body.setVelocity(ballBody, { x: 15 * scaleFactor, y: -12 * scaleFactor });
+                }
+            } else if (player === 'P2' && p2Power >= 100 && !p2PowerActive) {
+                p2Power = 0;
+                p2PowerActive = true;
+                p2PowerDuration = 120;
+                sound.playPowerShot();
+                updatePowerBars();
+
+                const skin = p2Skin;
+                if (skin === 'fool' || skin === 'tyrant') {
+                    Body.setVelocity(ballBody, { x: -18 * scaleFactor, y: -6 * scaleFactor });
+                } else if (skin === 'amon') {
+                    Body.setVelocity(ballBody, { x: 0, y: -10 * scaleFactor });
+                } else {
+                    Body.setVelocity(ballBody, { x: -15 * scaleFactor, y: -12 * scaleFactor });
+                }
+            }
+        }
+
+        function handleControls() {
+            const moveSpeed = 4.2 * scaleFactor;
+            const jumpForce = -0.058 * scaleFactor * p1Body.mass;
+            const floorY = pitchHeight - 40 * scaleFactor;
+
+            // Keep pill body upright
+            Body.setAngle(p1Body, p1Body.angle * 0.8);
+            Body.setAngle(p2Body, p2Body.angle * 0.8);
+
+            // Passive Power Charge overtime
+            p1Power = Math.min(100, p1Power + 0.08);
+            p2Power = Math.min(100, p2Power + 0.08);
+            updatePowerBars();
+
+            // Kick timer updates
+            if (p1KickTimer > 0) p1KickTimer--;
+            if (p2KickTimer > 0) p2KickTimer--;
+
+            // Player 1 Controls (WASD)
+            if (keys['KeyA'] || keys['a']) {
+                Body.setVelocity(p1Body, { x: -moveSpeed, y: p1Body.velocity.y });
+            }
+            if (keys['KeyD'] || keys['d']) {
+                Body.setVelocity(p1Body, { x: moveSpeed, y: p1Body.velocity.y });
+            }
+            if ((keys['KeyW'] || keys['w']) && Math.abs(p1Body.velocity.y) < 0.6 && p1Body.position.y >= floorY - 95 * scaleFactor) {
+                Body.applyForce(p1Body, p1Body.position, { x: 0, y: jumpForce });
+                sound.playJump();
+            }
+            if (keys['KeyS'] || keys['s']) {
+                if (p1KickTimer === 0) triggerKick('P1');
+            }
+            if (keys['Space']) {
+                activateBeyonderPower('P1');
+            }
+
+            // Player 2 Controls (Arrow Keys in 2P Mode)
+            if (gameMode === '2P') {
+                if (keys['ArrowLeft']) {
+                    Body.setVelocity(p2Body, { x: -moveSpeed, y: p2Body.velocity.y });
+                }
+                if (keys['ArrowRight']) {
+                    Body.setVelocity(p2Body, { x: moveSpeed, y: p2Body.velocity.y });
+                }
+                if (keys['ArrowUp'] && Math.abs(p2Body.velocity.y) < 0.6 && p2Body.position.y >= floorY - 95 * scaleFactor) {
+                    Body.applyForce(p2Body, p2Body.position, { x: 0, y: jumpForce });
+                    sound.playJump();
+                }
+                if (keys['ArrowDown']) {
+                    if (p2KickTimer === 0) triggerKick('P2');
+                }
+                if (keys['Enter']) {
+                    activateBeyonderPower('P2');
+                }
+            }
+        }
+
+        function updateAI() {
+            if (gameMode !== '1P') return;
+
+            const moveSpeed = 3.8 * scaleFactor;
+            const jumpForce = -0.054 * scaleFactor * p2Body.mass;
+            const floorY = pitchHeight - 40 * scaleFactor;
+
+            const ballX = ballBody.position.x;
+            const ballY = ballBody.position.y;
+            const botX = p2Body.position.x;
+
+            const targetX = ballX > pitchWidth * 0.45 ? ballX + 20 * scaleFactor : pitchWidth * 0.78;
+
+            if (botX < targetX - 15) {
+                Body.setVelocity(p2Body, { x: moveSpeed, y: p2Body.velocity.y });
+            } else if (botX > targetX + 15) {
+                Body.setVelocity(p2Body, { x: -moveSpeed, y: p2Body.velocity.y });
+            }
+
+            // AI Jump logic
+            if (Math.abs(ballX - botX) < 110 * scaleFactor && ballY < p2Body.position.y - 30 * scaleFactor && Math.abs(p2Body.velocity.y) < 0.6 && p2Body.position.y >= floorY - 95 * scaleFactor) {
+                Body.applyForce(p2Body, p2Body.position, { x: -0.005, y: jumpForce });
+                sound.playJump();
+            }
+
+            // AI Kick Boot
+            if (Math.abs(ballX - botX) < 70 * scaleFactor && Math.abs(ballY - p2Body.position.y) < 70 * scaleFactor) {
+                if (p2KickTimer === 0) triggerKick('P2');
+            }
+
+            // AI Ultimate Power
+            if (p2Power >= 100 && Math.abs(ballX - botX) < 160 * scaleFactor) {
+                activateBeyonderPower('P2');
+            }
+        }
+
+        function renderPillSoccerCharacter(body, skinKey, facingRight = true, kickTimer = 0) {
+            const pos = body.position;
+            const angle = body.angle;
+            const skin = SKINS[skinKey] || SKINS.fool;
+
+            const w = 48 * scaleFactor;
+            const h = 92 * scaleFactor;
+            const r = w / 2;
+
+            ctx.save();
+            ctx.translate(pos.x, pos.y);
+            ctx.rotate(angle);
+
+            // Beyonder Aura Glow
+            if (skin.auraColor) {
+                ctx.shadowColor = skin.auraColor;
+                ctx.shadowBlur = 20;
+            }
+
+            // Pill Capsule Body Path
+            ctx.beginPath();
+            ctx.arc(0, -h/2 + r, r, Math.PI, 0, false);
+            ctx.lineTo(r, h/2 - r);
+            ctx.arc(0, h/2 - r, r, 0, Math.PI, false);
+            ctx.closePath();
+
+            ctx.fillStyle = skin.primaryColor;
+            ctx.fill();
+            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Face / Eye Details
+            ctx.fillStyle = skin.skinTone;
+            ctx.beginPath();
+            ctx.ellipse(facingRight ? 4 : -4, -h * 0.22, r * 0.7, r * 0.65, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Big Eye Eyesight
+            const eyeX = facingRight ? 6 : -6;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(-6 + eyeX, -h * 0.22, 6, 0, Math.PI * 2);
+            ctx.arc(6 + eyeX, -h * 0.22, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(-5 + eyeX, -h * 0.22, 3, 0, Math.PI * 2);
+            ctx.arc(7 + eyeX, -h * 0.22, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // LOTM Accessories
+            if (skinKey === 'fool') {
+                // Fool's Top Hat
+                ctx.fillStyle = "#09090b";
+                ctx.fillRect(-r * 0.9, -h * 0.45, w * 0.9, 6);
+                ctx.fillRect(-r * 0.6, -h * 0.72, w * 0.6, h * 0.28);
+                ctx.fillStyle = "#a855f7";
+                ctx.fillRect(-r * 0.6, -h * 0.5, w * 0.6, 4);
+
+            } else if (skinKey === 'amon') {
+                // Monocle on right eye
+                ctx.strokeStyle = "#f59e0b";
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(7 + eyeX, -h * 0.22, 7, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Pointed Angel Hat
+                ctx.fillStyle = "#09090b";
+                ctx.beginPath();
+                ctx.moveTo(-r * 0.9, -h * 0.44);
+                ctx.lineTo(r * 0.9, -h * 0.44);
+                ctx.lineTo(0, -h * 0.8);
+                ctx.closePath();
+                ctx.fill();
+
+            } else if (skinKey === 'obama') {
+                // President Suit Tie & Top Hat
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.moveTo(-r * 0.4, 0);
+                ctx.lineTo(r * 0.4, 0);
+                ctx.lineTo(0, h * 0.22);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = "#e11d48";
+                ctx.fillRect(-3, 0, 6, h * 0.28);
+
+                ctx.fillStyle = "#020617";
+                ctx.fillRect(-r * 0.9, -h * 0.46, w * 0.9, 6);
+                ctx.fillRect(-r * 0.6, -h * 0.74, w * 0.6, h * 0.28);
+
+            } else if (skinKey === 'evernight') {
+                // Starry Crown Halo
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, -h * 0.48, r * 0.8, Math.PI, 0);
+                ctx.stroke();
+
+            } else if (skinKey === 'tyrant') {
+                // Lightning Crown
+                ctx.fillStyle = "#38bdf8";
+                ctx.beginPath();
+                ctx.moveTo(-10, -h * 0.45);
+                ctx.lineTo(-4, -h * 0.65);
+                ctx.lineTo(0, -h * 0.5);
+                ctx.lineTo(4, -h * 0.65);
+                ctx.lineTo(10, -h * 0.45);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function drawBall() {
+            const pos = ballBody.position;
+            const radius = 22 * scaleFactor;
+            const angle = ballBody.angle;
+
+            ctx.save();
+            ctx.translate(pos.x, pos.y);
+            ctx.rotate(angle);
+
+            ctx.shadowColor = 'rgba(245, 158, 11, 0.9)';
+            ctx.shadowBlur = 18;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fill();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Crystal Ball / Pentagram Pattern
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = '#e11d48';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.22, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function renderFieldGraphics() {
+            // Above the Grey Fog / Crimson Moon Arena Background
+            ctx.fillStyle = '#06030b';
+            ctx.fillRect(0, 0, pitchWidth, pitchHeight);
+
+            // Crimson Moon Background
+            ctx.save();
+            ctx.shadowColor = 'rgba(225, 29, 72, 0.85)';
+            ctx.shadowBlur = 45;
+            ctx.fillStyle = '#e11d48';
+            ctx.beginPath();
+            ctx.arc(pitchWidth / 2, pitchHeight * 0.26, 95 * scaleFactor, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Moon Craters
+            ctx.fillStyle = 'rgba(159, 18, 57, 0.55)';
+            ctx.beginPath();
+            ctx.arc(pitchWidth / 2 - 25, pitchHeight * 0.26 - 20, 24 * scaleFactor, 0, Math.PI * 2);
+            ctx.arc(pitchWidth / 2 + 35, pitchHeight * 0.26 + 18, 18 * scaleFactor, 0, Math.PI * 2);
+            ctx.fill();
+
+            const floorY = pitchHeight - 40 * scaleFactor;
+
+            // Pitch Ground Surface
+            ctx.fillStyle = '#130a1e';
+            ctx.fillRect(0, floorY, pitchWidth, 40 * scaleFactor);
+
+            ctx.fillStyle = 'rgba(217, 119, 6, 0.12)';
+            const stripeW = pitchWidth / 10;
+            for (let i = 0; i < 10; i += 2) {
+                ctx.fillRect(i * stripeW, floorY, stripeW, 40 * scaleFactor);
+            }
+
+            // Pitch Lines
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.moveTo(pitchWidth / 2, floorY);
+            ctx.lineTo(pitchWidth / 2, pitchHeight * 0.2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(pitchWidth / 2, floorY - 60 * scaleFactor, 75 * scaleFactor, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Gothic Net Frames
+            const goalWidth = 110 * scaleFactor;
+            const goalHeight = 180 * scaleFactor;
+
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
+            ctx.fillRect(0, floorY - goalHeight, goalWidth, goalHeight);
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, floorY - goalHeight, goalWidth, goalHeight);
+
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
+            ctx.fillRect(pitchWidth - goalWidth, floorY - goalHeight, goalWidth, goalHeight);
+            ctx.strokeRect(pitchWidth - goalWidth, floorY - goalHeight, goalWidth, goalHeight);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, pitchWidth, pitchHeight);
+
+            renderFieldGraphics();
+
+            if (p1Body) renderPillSoccerCharacter(p1Body, p1Skin, true, p1KickTimer);
+            if (p2Body) renderPillSoccerCharacter(p2Body, p2Skin, false, p2KickTimer);
+            if (ballBody) drawBall();
+
+            if (isGameRunning) {
+                Engine.update(engine, 1000 / 60);
+                handleControls();
+                updateAI();
+                requestAnimationFrame(render);
+            }
+        }
+
+        function startTimer() {
+            clearInterval(matchInterval);
+            matchTimer = 90;
+            updateTimerDisplay();
+
+            matchInterval = setInterval(() => {
+                if (isGameRunning && !isGoalScored) {
+                    matchTimer--;
+                    updateTimerDisplay();
+
+                    if (matchTimer <= 0) {
+                        endGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(matchTimer / 60);
+            const secs = matchTimer % 60;
+            document.getElementById('matchTime').innerText = 
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function selectGameMode(mode) {
+            gameMode = mode;
+            const btn1P = document.getElementById('btnMode1P');
+            const btn2P = document.getElementById('btnMode2P');
+            const p2Label = document.getElementById('p2SkinLabel');
+
+            if (mode === '1P') {
+                btn1P.className = 'p-4 rounded-2xl glass-panel border-2 border-amber-500/80 bg-amber-500/10 flex flex-col items-center btn-bounce';
+                btn2P.className = 'p-4 rounded-2xl glass-panel border-2 border-white/10 flex flex-col items-center btn-bounce hover:border-purple-400/80';
+                p2Label.innerText = "AI Bot Character";
+                document.getElementById('p2TouchBox').classList.add('hidden');
+            } else {
+                btn2P.className = 'p-4 rounded-2xl glass-panel border-2 border-purple-400/80 bg-purple-500/10 flex flex-col items-center btn-bounce';
+                btn1P.className = 'p-4 rounded-2xl glass-panel border-2 border-white/10 flex flex-col items-center btn-bounce hover:border-amber-400/80';
+                p2Label.innerText = "Player 2 (Arrows)";
+                document.getElementById('p2TouchBox').classList.remove('hidden');
+            }
+        }
+
+        function updateSkinPreview(player, skinKey) {
+            if (player === 'P1') {
+                p1Skin = skinKey;
+                const skin = SKINS[skinKey];
+                document.getElementById('hudP1SkinIcon').innerText = skin.icon;
+                document.getElementById('hudP1Name').innerText = skin.name;
+            } else {
+                p2Skin = skinKey;
+                const skin = SKINS[skinKey];
+                document.getElementById('hudP2SkinIcon').innerText = skin.icon;
+                document.getElementById('hudP2Name').innerText = (gameMode === '1P' ? "AI BOT" : skin.name);
+            }
+        }
+
+        function startGame() {
+            sound.init();
+            sound.playWhistle();
+
+            p1Score = 0;
+            p2Score = 0;
+            p1Power = 0;
+            p2Power = 0;
+            updateScoreHud();
+            updatePowerBars();
+
+            p1Skin = document.getElementById('p1SkinSelect').value;
+            p2Skin = document.getElementById('p2SkinSelect').value;
+            updateSkinPreview('P1', p1Skin);
+            updateSkinPreview('P2', p2Skin);
+
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('gameOverMenu').classList.add('hidden');
+            document.getElementById('btnPause').classList.remove('hidden');
+
+            buildField();
+            isGameRunning = true;
+            isGoalScored = false;
+
+            startTimer();
+            requestAnimationFrame(render);
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            clearInterval(matchInterval);
+            sound.playWhistle();
+
+            const gameOverMenu = document.getElementById('gameOverMenu');
+            const winnerTitle = document.getElementById('winnerTitle');
+            const winnerSubtitle = document.getElementById('winnerSubtitle');
+            const winnerEmoji = document.getElementById('winnerEmoji');
+
+            let winnerName = "";
+            if (p1Score > p2Score) {
+                winnerName = SKINS[p1Skin].name;
+                winnerEmoji.innerText = "🏆";
+            } else if (p2Score > p1Score) {
+                winnerName = gameMode === '1P' ? "AI BOT" : SKINS[p2Skin].name;
+                winnerEmoji.innerText = "🤖";
+            } else {
+                winnerName = "DRAW GAME!";
+                winnerEmoji.innerText = "🤝";
+            }
+
+            winnerTitle.innerText = `${winnerName.toUpperCase()} ${p1Score === p2Score ? '' : 'WINS!'}`;
+            winnerSubtitle.innerText = `Final Score: ${p1Score} - ${p2Score}`;
+
+            gameOverMenu.classList.remove('hidden');
+        }
+
+        function returnToMainMenu() {
+            isGameRunning = false;
+            clearInterval(matchInterval);
+            document.getElementById('gameOverMenu').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+            document.getElementById('btnPause').classList.add('hidden');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            keys[e.key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            keys[e.key] = false;
+        });
+
+        function setupTouchControl(id, keyCode) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[keyCode] = true;
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[keyCode] = false;
+            });
+        }
+
+        setupTouchControl('btnTouchP1Left', 'KeyA');
+        setupTouchControl('btnTouchP1Right', 'KeyD');
+        setupTouchControl('btnTouchP1Jump', 'KeyW');
+        setupTouchControl('btnTouchP1Kick', 'KeyS');
+        setupTouchControl('btnTouchP1Power', 'Space');
+
+        setupTouchControl('btnTouchP2Left', 'ArrowLeft');
+        setupTouchControl('btnTouchP2Right', 'ArrowRight');
+        setupTouchControl('btnTouchP2Jump', 'ArrowUp');
+        setupTouchControl('btnTouchP2Kick', 'ArrowDown');
+        setupTouchControl('btnTouchP2Power', 'Enter');
+
+        document.getElementById('btnSoundToggle').addEventListener('click', () => {
+            sound.muted = !sound.muted;
+            const icon = document.getElementById('soundIcon');
+            if (sound.muted) {
+                icon.className = "fas fa-volume-xmark text-red-400";
+            } else {
+                icon.className = "fas fa-volume-high text-slate-200";
+            }
+        });
+
+        window.onload = function() {
+            initPhysics();
+            checkCollisions();
+            selectGameMode('1P');
+            
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.getElementById('touchControls').classList.remove('hidden');
+            }
+        };
+    </script>
+</body>
+</html>
