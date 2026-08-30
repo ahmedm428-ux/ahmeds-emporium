@@ -331,7 +331,7 @@
         const defaultData = {
             name: "The Fool",
             title: "Attendant of Mysteries • Sequence 1 • Web Architect",
-            bio: "Crafting mystical web experiences, algorithms, and digital miracles under the Gray Fog. Explore my project sequences below or draw a Tarot Card to initiate divination.",
+            bio: "Crafting mystical web experiences, algorithms, and digital miracles under the Gray Fog.",
             avatar: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80",
             socials: [
                 { name: "GitHub", icon: "github", url: "https://github.com" },
@@ -346,7 +346,7 @@
                     cardRoman: "VII",
                     sequence: "Sequence 7",
                     pathway: "Door Pathway",
-                    category: "AI & Creative",
+                    category: "Games",
                     title: "Pill Soccer Game",
                     description: "2-Player physics sports game featuring custom pill champions and local multiplayer.",
                     tags: ["Canvas", "Physics", "JS"],
@@ -354,86 +354,11 @@
                     githubUrl: "#",
                     symbol: "gamepad-2",
                     bgGradient: "from-amber-950 via-black to-slate-900"
-                },
-                {
-                    id: "door-01",
-                    cardTitle: "THE DOOR",
-                    cardRoman: "I",
-                    sequence: "Sequence 2",
-                    pathway: "Door Pathway",
-                    category: "Web & API",
-                    title: "Planeswalker Gateway Router",
-                    description: "High-speed zero-latency global API gateway enabling instantaneous teleportation of web webhooks across cloud servers.",
-                    tags: ["Go", "gRPC", "Docker", "Redis"],
-                    demoUrl: "#",
-                    githubUrl: "#",
-                    symbol: "key-round",
-                    bgGradient: "from-blue-950 via-black to-indigo-950"
-                },
-                {
-                    id: "error-01",
-                    cardTitle: "THE ERROR",
-                    cardRoman: "II",
-                    sequence: "Sequence 3",
-                    pathway: "Error Pathway",
-                    category: "Cybersec",
-                    title: "Parasite Vulnerability Auditor",
-                    description: "Automated cybersecurity penetration testing utility designed to find logic bugs, exploits, and time loopholes.",
-                    tags: ["Rust", "Wasm", "Security"],
-                    demoUrl: "#",
-                    githubUrl: "#",
-                    symbol: "bug",
-                    bgGradient: "from-emerald-950 via-black to-teal-950"
-                },
-                {
-                    id: "hermit-01",
-                    cardTitle: "THE HERMIT",
-                    cardRoman: "III",
-                    sequence: "Sequence 4",
-                    pathway: "Hermit Pathway",
-                    category: "Data & Knowledge",
-                    title: "Knowledge Scroll (Obsidian Sync)",
-                    description: "Interactive graph knowledge base compiling 22 pathways of computer science documentation and algorithms.",
-                    tags: ["TypeScript", "React", "D3.js"],
-                    demoUrl: "#",
-                    githubUrl: "#",
-                    symbol: "scroll",
-                    bgGradient: "from-purple-950 via-black to-slate-950"
-                },
-                {
-                    id: "tyrant-01",
-                    cardTitle: "THE TYRANT",
-                    cardRoman: "IV",
-                    sequence: "Sequence 1",
-                    pathway: "Tyrant Pathway",
-                    category: "Web & API",
-                    title: "Calamity Audio Synthesizer",
-                    description: "Web Audio API sound engine that generates thunderous ocean waves and storm frequency acoustics.",
-                    tags: ["Web Audio", "JS", "CSS3"],
-                    demoUrl: "#",
-                    githubUrl: "#",
-                    symbol: "zap",
-                    bgGradient: "from-cyan-950 via-black to-blue-900"
-                },
-                {
-                    id: "visionary-01",
-                    cardTitle: "THE VISIONARY",
-                    cardRoman: "V",
-                    sequence: "Sequence 0",
-                    pathway: "Visionary Pathway",
-                    category: "AI & Creative",
-                    title: "Envision Canvas Shader",
-                    description: "WebGL / Three.js generative art system that weaves dreams and subconscious thoughts into real-time visual canvases.",
-                    tags: ["Three.js", "GLSL", "Canvas"],
-                    demoUrl: "#",
-                    githubUrl: "#",
-                    symbol: "sparkle",
-                    bgGradient: "from-amber-950 via-black to-amber-900"
                 }
             ]
         };
 
-        let appData = JSON.parse(localStorage.getItem('lotm_portfolio_data')) || defaultData;
+        let appData = defaultData;
         let activeCategory = "All";
 
         const AudioFX = {
