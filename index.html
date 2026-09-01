@@ -541,7 +541,6 @@
                 appData.avatar = document.getElementById('input-avatar').value;
                 appData.projects = JSON.parse(document.getElementById('input-projects-json').value);
                 
-                localStorage.setItem('lotm_portfolio_data', JSON.stringify(appData));
                 initApp();
                 closeCustomizer();
                 AudioFX.playChime();
