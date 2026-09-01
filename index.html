@@ -128,106 +128,51 @@
                         <i data-lucide="eye" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h1 class="font-cinzel text-lg sm:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sefirah-gold via-yellow-100 to-sefirah-bronze tracking-wider">
-                            AHMED'S EMPORIUM
-                        </h1>
-                        <p class="text-xs text-sefirah-bronze/70 tracking-widest uppercase font-serif">Sequence 0 • Portfolio Hub</p>
-                    </div>
-                </div>
-
-                <!-- Concept Layout Selectors -->
-                <div class="hidden md:flex items-center gap-2 bg-black/40 p-1.5 border border-sefirah-bronze/30 rounded-full">
-                    <button onclick="switchTheme('tarot')" id="btn-tarot" class="px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all bg-sefirah-crimson text-white shadow-lg">
-                        <i data-lucide="layout-grid" class="w-3.5 h-3.5 inline mr-1"></i> Items Assembly
-                    </button>
-                    <button onclick="switchTheme('grimoire')" id="btn-grimoire" class="px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-sefirah-gold transition-all">
-                        <i data-lucide="book-open" class="w-3.5 h-3.5 inline mr-1"></i> Grimoire Codex
-                    </button>
-                    <button onclick="switchTheme('pathways')" id="btn-pathways" class="px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-sefirah-gold transition-all">
-                        <i data-lucide="git-branch" class="w-3.5 h-3.5 inline mr-1"></i> 22 Pathways Tree
-                    </button>
-                </div>
-
-                <!-- Controls & Social Action -->
-                <div class="flex items-center gap-3">
-                    <button onclick="openDivinationModal()" class="px-3 py-1.5 rounded-lg border border-sefirah-gold/40 text-sefirah-gold hover:bg-sefirah-gold/10 text-xs font-serif tracking-wider flex items-center gap-1.5 transition-all">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-sefirah-gold animate-pulse"></i>
-                        <span class="hidden sm:inline">Divination</span>
-                    </button>
-                    <button onclick="openCustomizer()" class="p-2 rounded-lg border border-sefirah-bronze/40 text-gray-300 hover:text-sefirah-gold hover:border-sefirah-gold transition-all">
-                        <i data-lucide="settings" class="w-4 h-4"></i>
-                    </button>
+                    <h1 class="font-cinzel text-lg sm:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sefirah-gold via-yellow-100 to-sefirah-bronze tracking-wider">
+                        AHMED'S EMPORIUM
+                    </h1>
+                    <p class="text-xs text-sefirah-bronze/70 tracking-widest uppercase font-serif">Sequence 0 • Portfolio Hub</p>
                 </div>
             </div>
 
-            <!-- Mobile Layout Switcher -->
-            <div class="md:hidden flex border-t border-sefirah-bronze/20 bg-black/60 justify-around p-2 text-xs">
-                <button onclick="switchTheme('tarot')" class="text-sefirah-gold font-serif">Items</button>
-                <button onclick="switchTheme('grimoire')" class="text-gray-400 font-serif">Grimoire</button>
-                <button onclick="switchTheme('pathways')" class="text-gray-400 font-serif">Pathways</button>
+            <!-- Controls & Social Action -->
+            <div class="flex items-center gap-3">
+                <button onclick="openDivinationModal()" class="px-3 py-1.5 rounded-lg border border-sefirah-gold/40 text-sefirah-gold hover:bg-sefirah-gold/10 text-xs font-serif tracking-wider flex items-center gap-1.5 transition-all">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-sefirah-gold animate-pulse"></i>
+                    <span class="hidden sm:inline">Divination</span>
+                </button>
+                <button onclick="openCustomizer()" class="p-2 rounded-lg border border-sefirah-bronze/40 text-gray-300 hover:text-sefirah-gold hover:border-sefirah-gold transition-all">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                </button>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
-            
-            <section id="view-tarot" class="space-y-6">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sefirah-bronze/30 pb-4">
-                    <div>
-                        <h3 class="font-cinzel text-xl font-bold text-sefirah-gold flex items-center gap-2">
-                            <i data-lucide="layers" class="w-5 h-5 text-sefirah-crimson"></i>
-                            THE ITEMS ASSEMBLY
-                        </h3>
-                        <p class="text-xs text-gray-400 font-serif">Click any Item card to reveal project blueprints and mystical links.</p>
-                    </div>
-
-                    <!-- Category Filter -->
-                    <div class="flex flex-wrap gap-2 text-xs" id="tarot-filter-container">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-
-                <!-- Card Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="tarot-card-grid">
-                    <!-- Dynamic Tarot Cards Inserted Here -->
-                </div>
-            </section>
-
-            <section id="view-grimoire" class="hidden space-y-6">
-                <div class="border-b border-sefirah-bronze/30 pb-4">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        
+        <section id="view-tarot" class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sefirah-bronze/30 pb-4">
+                <div>
                     <h3 class="font-cinzel text-xl font-bold text-sefirah-gold flex items-center gap-2">
-                        <i data-lucide="book-open" class="w-5 h-5 text-sefirah-bronze"></i>
-                        THE ANTIQUE GRIMOIRE CODEX
+                        <i data-lucide="layers" class="w-5 h-5 text-sefirah-crimson"></i>
+                        THE ITEMS ASSEMBLY
                     </h3>
-                    <p class="text-xs text-gray-400 font-serif">A Victorian leather-bound logbook containing project research notes, alchemy recipes, and repository coordinates.</p>
+                    <p class="text-xs text-gray-400 font-serif">I am a student and this is my portfolio of different things i've created click on the cards below to start.</p>
                 </div>
 
-                <div class="bg-sefirah-parchmentDark border-2 border-sefirah-bronze/60 rounded-2xl p-6 sm:p-10 shadow-2xl relative parchment-texture">
-                    <!-- Wax Seal Decoration -->
-                    <div class="absolute top-6 right-6 w-12 h-12 rounded-full bg-sefirah-crimson border-2 border-yellow-500 shadow-lg flex items-center justify-center text-yellow-300 font-cinzel font-bold text-sm select-none opacity-80">
-                        FOOL
-                    </div>
-
-                    <div class="space-y-8" id="grimoire-list">
-                        <!-- Dynamic Grimoire Entries -->
-                    </div>
+                <!-- Category Filter -->
+                <div class="flex flex-wrap gap-2 text-xs" id="tarot-filter-container">
+                    <!-- Populated dynamically -->
                 </div>
-            </section>
+            </div>
 
-            <section id="view-pathways" class="hidden space-y-6">
-                <div class="border-b border-sefirah-bronze/30 pb-4">
-                    <h3 class="font-cinzel text-xl font-bold text-sefirah-gold flex items-center gap-2">
-                        <i data-lucide="git-branch" class="w-5 h-5 text-sefirah-gold"></i>
-                        THE 22 PATHWAYS OF THE DIVINE
-                    </h3>
-                    <p class="text-xs text-gray-400 font-serif">Projects sorted by Sequence Potions and Divine Domains.</p>
-                </div>
+            <!-- Card Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="tarot-card-grid">
+                <!-- Dynamic Tarot Cards Inserted Here -->
+            </div>
+        </section>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="pathways-container">
-                    <!-- Dynamic Pathways Columns -->
-                </div>
-            </section>
-
-        </main>
+    </main>
 
         <footer class="border-t border-sefirah-bronze/30 bg-black/90 py-8 text-center text-xs text-gray-400 space-y-3 relative z-10">
             <div class="font-cinzel text-sefirah-gold text-sm tracking-widest">
@@ -405,8 +350,6 @@
         function initApp() {
             renderTarotFilters();
             renderTarotGrid();
-            renderGrimoire();
-            renderPathways();
             lucide.createIcons();
         }
 
