@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Finder — The Mystical Library</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400;1,700&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif'],
+                        cinzel: ['"Cinzel"', 'serif'],
+                    },
+                    colors: {
+                        obsidian: {
+                            800: '#161922',
+                            900: '#0f1118',
+                            950: '#090a0f',
+                        },
+                        crimson: {
+                            500: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            950: '#4c0519',
+                        },
+                        amberwood: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            500: '#f59e0b',
+                            800: '#92400e',
+                            900: '#78350f',
+                            950: '#2d1406',
+                        },
+                        foolGold: {
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            800: '#854d0e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom mystical scrollbar & background textures */
+        body {
+            background-color: #0b0c10;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(159, 18, 57, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(202, 138, 4, 0.08) 0%, transparent 40%);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f1118;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #272a36;
+            border-radius: 4px;
+            border: 1px solid rgba(202, 138, 4, 0.2);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #854d0e;
+        }
+        .tarot-card {
+            background: linear-gradient(145deg, #131620 0%, #0e1017 100%);
+            border: 1px solid rgba(202, 138, 4, 0.25);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+        }
+        .tarot-card:hover {
+            border-color: rgba(250, 204, 21, 0.6);
+            box-shadow: 0 6px 25px -2px rgba(159, 18, 57, 0.3), 0 0 15px rgba(250, 204, 21, 0.15);
+        }
+    </style>
+</head>
+<body class="text-slate-200 font-sans min-h-screen flex flex-col selection:bg-crimson-800 selection:text-amber-200">
+
+    <header class="bg-obsidian-950/90 text-slate-100 border-b border-foolGold-600/30 sticky top-0 z-30 backdrop-blur-md shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-crimson-950 via-obsidian-900 to-foolGold-800 border border-foolGold-500/40 flex items-center justify-center text-foolGold-400 shadow-inner group cursor-pointer">
+                    <i data-lucide="eye" class="w-6 h-6 transition-transform duration-300 group-hover:scale-110"></i>
+                </div>
+                <div>
+                    <h1 class="font-cinzel text-xl sm:text-2xl font-bold tracking-wider text-amber-200 flex items-center gap-2">
+                        <span>Book Finder</span>
+                        <span class="text-xs font-sans uppercase font-semibold text-crimson-500 bg-crimson-950/80 px-2 py-0.5 rounded border border-crimson-800/50">Mystical Library</span>
+                    </h1>
+                    <p class="text-xs text-amber-300/70 font-sans italic">Curated Reads Beyond the Fog</p>
+                </div>
+            </div>
+
+            <!-- View Mode Tabs (Mobile & Desktop Switcher) -->
+            <div class="flex bg-obsidian-900 p-1 rounded-xl border border-foolGold-800/40">
+                <button id="tab-looking" onclick="switchView('looking')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-gradient-to-r from-amber-600 to-foolGold-600 text-obsidian-950 shadow-sm font-cinzel">
+                    <i data-lucide="compass" class="w-4 h-4"></i>
+                    <span>Browse Reads</span>
+                    <span id="nav-count-badge" class="bg-obsidian-950 text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold border border-amber-500/30">0</span>
+                </button>
+                <button id="tab-adding" onclick="switchView('adding')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-amber-200/80 hover:text-amber-100 font-cinzel">
+                    <i data-lucide="scroll" class="w-4 h-4 text-crimson-500"></i>
+                    <span>Add Recommendation</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        
+        <!-- LOOKING VIEW (Browse & Search Recommendations) -->
+        <section id="view-looking" class="space-y-6">
+            
+            <!-- Top Controls Header -->
+            <div class="bg-obsidian-900/80 backdrop-blur-sm rounded-2xl p-5 border border-foolGold-600/20 shadow-md space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                    <div>
+                        <h2 class="font-cinzel text-2xl font-bold text-amber-100 flex items-center gap-2.5">
+                            <i data-lucide="book-open-check" class="w-6 h-6 text-foolGold-400"></i>
+                            Recommended Books
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Explore books shared by fellow scholars or search by format and vibe.</p>
+                    </div>
+
+                    <!-- Live Counter Display -->
+                    <div class="flex items-center gap-2 bg-obsidian-950 border border-foolGold-600/40 text-amber-200 px-4 py-2 rounded-xl shadow-inner">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-crimson-500"></i>
+                        <span class="text-xs font-medium text-slate-300">Saved Books:</span>
+                        <span id="live-book-count" class="font-bold font-mono text-base text-foolGold-400">0</span>
+                    </div>
+                </div>
+
+                <!-- Filter Controls Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Search title, author, or person..." class="w-full pl-9 pr-3 py-2 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-200 placeholder-slate-500 transition-all">
+                    </div>
+
+                    <!-- Format Filter Dropdown -->
+                    <div>
+                        <select id="filter-format" onchange="applyFilters()" class="w-full px-3 py-2 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-300 transition-all">
+                            <option value="">All Formats</option>
+                            <option value="manga">manga</option>
+                            <option value="non-fiction">non-fiction</option>
+                            <option value="fiction">fiction</option>
+                            <option value="graphic novel (comic)">graphic novel (comic)</option>
+                            <option value="novel">novel</option>
+                        </select>
+                    </div>
+
+                    <!-- Vibe Filter Dropdown -->
+                    <div>
+                        <select id="filter-vibe" onchange="applyFilters()" class="w-full px-3 py-2 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-300 transition-all">
+                            <option value="">All Vibes</option>
+                            <option value="Thrilling">Thrilling</option>
+                            <option value="Cozy">Cozy</option>
+                            <option value="Sad & Emotional">Sad & Emotional</option>
+                            <option value="Mind-Bending">Mind-Bending</option>
+                            <option value="Fun & Funny">Fun & Funny</option>
+                            <option value="Romantic">Romantic</option>
+                            <option value="Dark & Gritty">Dark & Gritty</option>
+                            <option value="Inspiring">Inspiring</option>
+                            <option value="Educational">Educational</option>
+                            <option value="Escapist">Escapist</option>
+                        </select>
+                    </div>
+
+                    <!-- Reset Filters Button -->
+                    <div>
+                        <button onclick="resetFilters()" class="w-full px-3 py-2 text-xs font-semibold text-slate-300 bg-obsidian-950 hover:bg-slate-800 rounded-xl border border-slate-800 flex items-center justify-center gap-1.5 transition-all hover:border-foolGold-600/40">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-foolGold-400"></i>
+                            <span>Reset Filters</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Book Cards Container -->
+            <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Cards injected here via JS -->
+            </div>
+
+            <!-- Empty State Display -->
+            <div id="empty-state" class="hidden bg-obsidian-900/60 border-2 border-dashed border-foolGold-600/20 rounded-2xl p-12 text-center space-y-4">
+                <div class="w-16 h-16 bg-obsidian-950 text-crimson-500 rounded-full flex items-center justify-center mx-auto shadow-inner border border-crimson-950">
+                    <i data-lucide="moon" class="w-8 h-8"></i>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="font-cinzel text-lg font-bold text-amber-200">No matching recommendations</h3>
+                    <p id="empty-state-message" class="text-sm text-slate-400 max-w-md mx-auto font-serif">
+                        No books recommended yet — be the first to add a book!
+                    </p>
+                </div>
+                <button onclick="switchView('adding')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-600 to-foolGold-600 text-obsidian-950 rounded-xl font-semibold text-xs transition-all shadow-md hover:brightness-110 font-cinzel">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>Share a Recommendation</span>
+                </button>
+            </div>
+
+        </section>
+
+        <!-- ADDING VIEW (Form to Submit a Recommendation) -->
+        <section id="view-adding" class="hidden max-w-2xl mx-auto">
+            <div class="bg-obsidian-900/90 rounded-2xl border border-foolGold-600/30 p-6 sm:p-8 shadow-xl space-y-6 relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-crimson-950/30 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="border-b border-slate-800/80 pb-4">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-crimson-950/80 text-amber-200 rounded-full text-xs font-semibold mb-2 border border-crimson-800/50">
+                        <i data-lucide="scroll" class="w-3.5 h-3.5 text-foolGold-400"></i>
+                        <span>New Record</span>
+                    </div>
+                    <h2 class="font-cinzel text-2xl font-bold text-amber-100">Add a Book Recommendation</h2>
+                    <p class="text-xs text-slate-400 mt-1">Share a favorite read with fellow scholars like Seif so they can find their next journey.</p>
+                </div>
+
+                <!-- Error Alert Box -->
+                <div id="form-error" class="hidden bg-crimson-950/60 border border-crimson-700 text-crimson-200 p-4 rounded-xl text-xs flex items-start gap-3">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-crimson-500 shrink-0 mt-0.5"></i>
+                    <div>
+                        <p class="font-bold font-cinzel">Submission Error</p>
+                        <p id="form-error-text">Must fill in all fields to submit</p>
+                    </div>
+                </div>
+
+                <!-- Submission Form -->
+                <form id="recommendation-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    
+                    <!-- Title Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-200/90 mb-1">
+                            Book Title <span class="text-crimson-500">*</span>
+                        </label>
+                        <input type="text" id="input-title" maxlength="50" placeholder="e.g. Monster" class="w-full px-3.5 py-2.5 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-200 placeholder-slate-600 transition-all">
+                        <p class="text-[10px] text-slate-500 mt-1 text-right">Max 50 characters</p>
+                    </div>
+
+                    <!-- Author Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-200/90 mb-1">
+                            Author <span class="text-crimson-500">*</span>
+                        </label>
+                        <input type="text" id="input-author" placeholder="e.g. Naoki Urasawa" class="w-full px-3.5 py-2.5 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-200 placeholder-slate-600 transition-all">
+                    </div>
+
+                    <!-- Format & Vibe Row -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        
+                        <!-- Format Dropdown -->
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-200/90 mb-1">
+                                Format <span class="text-crimson-500">*</span>
+                            </label>
+                            <select id="input-format" class="w-full px-3.5 py-2.5 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-300 transition-all">
+                                <option value="" disabled selected>Select format...</option>
+                                <option value="manga">manga</option>
+                                <option value="non-fiction">non-fiction</option>
+                                <option value="fiction">fiction</option>
+                                <option value="graphic novel (comic)">graphic novel (comic)</option>
+                                <option value="novel">novel</option>
+                            </select>
+                        </div>
+
+                        <!-- Vibe Dropdown -->
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-200/90 mb-1">
+                                Vibe / Feel <span class="text-crimson-500">*</span>
+                            </label>
+                            <select id="input-vibe" class="w-full px-3.5 py-2.5 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-300 transition-all">
+                                <option value="" disabled selected>Select vibe...</option>
+                                <option value="Thrilling">Thrilling</option>
+                                <option value="Cozy">Cozy</option>
+                                <option value="Sad & Emotional">Sad & Emotional</option>
+                                <option value="Mind-Bending">Mind-Bending</option>
+                                <option value="Fun & Funny">Fun & Funny</option>
+                                <option value="Romantic">Romantic</option>
+                                <option value="Dark & Gritty">Dark & Gritty</option>
+                                <option value="Inspiring">Inspiring</option>
+                                <option value="Educational">Educational</option>
+                                <option value="Escapist">Escapist</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Recommend By Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-200/90 mb-1">
+                            Your Name (Recommended By) <span class="text-crimson-500">*</span>
+                        </label>
+                        <input type="text" id="input-recommend-by" maxlength="50" placeholder="e.g. Seif" class="w-full px-3.5 py-2.5 text-xs bg-obsidian-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-foolGold-500 text-slate-200 placeholder-slate-600 transition-all">
+                        <p class="text-[10px] text-slate-500 mt-1 text-right">Max 50 characters</p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-800/80">
+                        <button type="button" onclick="switchView('looking')" class="px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-foolGold-600 hover:brightness-110 text-obsidian-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 font-cinzel">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Submit Recommendation</span>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-obsidian-950/90 border-t border-foolGold-600/20 py-6 mt-12 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <p class="font-cinzel text-amber-200/70 font-medium">Book Finder App • Built for Sharing & Discovery</p>
+        </div>
+    </footer>
+
+    <script>
+        // =========================================================================
+        // FAKE DATA (Runs on 20 mock rows; easily swapped with Supabase later)
+        // =========================================================================
+        const fakeBooks = [
+            {
+                title: "Monster",
+                author: "Naoki Urasawa",
+                format: "Manga",
+                vibe: "Thrilling",
+                recommend_by: "Seif",
+                added_at: "2026-09-03T09:15:00Z"
+            },
+            {
+                title: "Atomic Habits",
+                author: "James Clear",
+                format: "Non-fiction",
+                vibe: "Inspiring",
+                recommend_by: "Ahmed",
+                added_at: "2026-09-02T18:40:00Z"
+            },
+            {
+                title: "Dune",
+                author: "Frank Herbert",
+                format: "Novel",
+                vibe: "Mind-Bending",
+                recommend_by: "Omar",
+                added_at: "2026-09-02T14:20:00Z"
+            },
+            {
+                title: "Sapiens: A Brief History of Humankind",
+                author: "Yuval Noah Harari",
+                format: "Non-fiction",
+                vibe: "Educational",
+                recommend_by: "Kareem",
+                added_at: "2026-09-01T22:10:00Z"
+            },
+            {
+                title: "Berserk",
+                author: "Kentaro Miura",
+                format: "Manga",
+                vibe: "Dark & Gritty",
+                recommend_by: "Tariq",
+                added_at: "2026-09-01T16:05:00Z"
+            },
+            {
+                title: "The Hobbit",
+                author: "J.R.R. Tolkien",
+                format: "Novel",
+                vibe: "Escapist",
+                recommend_by: "Seif",
+                added_at: "2026-08-31T11:30:00Z"
+            },
+            {
+                title: "Watchmen",
+                author: "Alan Moore & Dave Gibbons",
+                format: "Graphic Novel (Comic)",
+                vibe: "Dark & Gritty",
+                recommend_by: "Nour",
+                added_at: "2026-08-30T19:50:00Z"
+            },
+            {
+                title: "Spy x Family",
+                author: "Tatsuya Endo",
+                format: "Manga",
+                vibe: "Fun & Funny",
+                recommend_by: "Maya",
+                added_at: "2026-08-29T13:15:00Z"
+            },
+            {
+                title: "Norwegian Wood",
+                author: "Haruki Murakami",
+                format: "Fiction",
+                vibe: "Sad & Emotional",
+                recommend_by: "Laila",
+                added_at: "2026-08-28T20:00:00Z"
+            },
+            {
+                title: "The House in the Cerulean Sea",
+                author: "TJ Klune",
+                format: "Fiction",
+                vibe: "Cozy",
+                recommend_by: "Huda",
+                added_at: "2026-08-27T15:45:00Z"
+            },
+            {
+                title: "Project Hail Mary",
+                author: "Andy Weir",
+                format: "Novel",
+                vibe: "Thrilling",
+                recommend_by: "Seif",
+                added_at: "2026-08-26T10:00:00Z"
+            },
+            {
+                title: "Maus",
+                author: "Art Spiegelman",
+                format: "Graphic Novel (Comic)",
+                vibe: "Sad & Emotional",
+                recommend_by: "Youssef",
+                added_at: "2026-08-25T17:25:00Z"
+            },
+            {
+                title: "Demon Slayer",
+                author: "Koyoharu Gotouge",
+                format: "Manga",
+                vibe: "Thrilling",
+                recommend_by: "Zaid",
+                added_at: "2026-08-24T12:00:00Z"
+            },
+            {
+                title: "Pride and Prejudice",
+                author: "Jane Austen",
+                format: "Fiction",
+                vibe: "Romantic",
+                recommend_by: "Salma",
+                added_at: "2026-08-23T09:40:00Z"
+            },
+            {
+                title: "Thinking, Fast and Slow",
+                author: "Daniel Kahneman",
+                format: "Non-fiction",
+                vibe: "Mind-Bending",
+                recommend_by: "Hassan",
+                added_at: "2026-08-22T14:10:00Z"
+            },
+            {
+                title: "Heartstopper",
+                author: "Alice Oseman",
+                format: "Graphic Novel (Comic)",
+                vibe: "Romantic",
+                recommend_by: "Dalia",
+                added_at: "2026-08-21T18:30:00Z"
+            },
+            {
+                title: "The Hitchhiker's Guide to the Galaxy",
+                author: "Douglas Adams",
+                format: "Novel",
+                vibe: "Fun & Funny",
+                recommend_by: "Adam",
+                added_at: "2026-08-20T11:20:00Z"
+            },
+            {
+                title: "Deep Work",
+                author: "Cal Newport",
+                format: "Non-fiction",
+                vibe: "Inspiring",
+                recommend_by: "Seif",
+                added_at: "2026-08-19T08:50:00Z"
+            },
+            {
+                title: "One Piece",
+                author: "Eiichiro Oda",
+                format: "Manga",
+                vibe: "Escapist",
+                recommend_by: "Faris",
+                added_at: "2026-08-18T16:00:00Z"
+            },
+            {
+                title: "A Short History of Nearly Everything",
+                author: "Bill Bryson",
+                format: "Non-fiction",
+                vibe: "Educational",
+                recommend_by: "Sami",
+                added_at: "2026-08-17T13:00:00Z"
+            }
+        ];
+
+        let currentBooks = [...fakeBooks];
+        let activeView = 'looking';
+
+        // Vibe color mapping for visual badges with subtle LOTM tone
+        const vibeBadgeStyles = {
+            'Thrilling': 'bg-crimson-950/80 text-crimson-200 border-crimson-800/60',
+            'Cozy': 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60',
+            'Sad & Emotional': 'bg-blue-950/80 text-blue-300 border-blue-800/60',
+            'Mind-Bending': 'bg-purple-950/80 text-purple-300 border-purple-800/60',
+            'Fun & Funny': 'bg-amber-950/80 text-amber-300 border-amber-800/60',
+            'Romantic': 'bg-pink-950/80 text-pink-300 border-pink-800/60',
+            'Dark & Gritty': 'bg-slate-900/90 text-slate-300 border-slate-700',
+            'Inspiring': 'bg-sky-950/80 text-sky-300 border-sky-800/60',
+            'Educational': 'bg-teal-950/80 text-teal-300 border-teal-800/60',
+            'Escapist': 'bg-fuchsia-950/80 text-fuchsia-300 border-fuchsia-800/60'
+        };
+
+        function switchView(view) {
+            activeView = view;
+            const lookingView = document.getElementById('view-looking');
+            const addingView = document.getElementById('view-adding');
+            const tabLooking = document.getElementById('tab-looking');
+            const tabAdding = document.getElementById('tab-adding');
+
+            if (view === 'looking') {
+                lookingView.classList.remove('hidden');
+                addingView.classList.add('hidden');
+                
+                tabLooking.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-gradient-to-r from-amber-600 to-foolGold-600 text-obsidian-950 shadow-sm font-cinzel";
+                tabAdding.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-amber-200/80 hover:text-amber-100 font-cinzel";
+                applyFilters();
+            } else {
+                lookingView.classList.add('hidden');
+                addingView.classList.remove('hidden');
+
+                tabAdding.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-gradient-to-r from-amber-600 to-foolGold-600 text-obsidian-950 shadow-sm font-cinzel";
+                tabLooking.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-amber-200/80 hover:text-amber-100 font-cinzel";
+            }
+            lucide.createIcons();
+        }
+
+        function renderCards(booksToRender) {
+            const grid = document.getElementById('cards-grid');
+            const emptyState = document.getElementById('empty-state');
+            const liveCount = document.getElementById('live-book-count');
+            const navBadge = document.getElementById('nav-count-badge');
+
+            // Update counters
+            liveCount.innerText = currentBooks.length;
+            navBadge.innerText = currentBooks.length;
+
+            if (booksToRender.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            // Sort newest first by added_at timestamp
+            const sortedBooks = [...booksToRender].sort((a, b) => new Date(b.added_at) - new Date(a.added_at));
+
+            grid.innerHTML = sortedBooks.map(book => {
+                const vibeStyle = vibeBadgeStyles[book.vibe] || 'bg-slate-900 text-slate-300 border-slate-700';
+                const formattedDate = new Date(book.added_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+
+                return `
+                    <div class="tarot-card rounded-2xl p-5 transition-all flex flex-col justify-between group relative overflow-hidden">
+                        <div class="space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="text-[10px] font-bold tracking-wider uppercase bg-obsidian-950 text-foolGold-400 px-2.5 py-1 rounded-md border border-foolGold-600/30">
+                                    ${escapeHtml(book.format)}
+                                </span>
+                                <span class="text-[10px] font-semibold px-2.5 py-1 rounded-md border ${vibeStyle}">
+                                    ${escapeHtml(book.vibe)}
+                                </span>
+                            </div>
+
+                            <div class="pt-1">
+                                <h3 class="font-cinzel text-lg font-bold text-amber-100 group-hover:text-foolGold-400 transition-colors line-clamp-2">
+                                    ${escapeHtml(book.title)}
+                                </h3>
+                                <p class="text-xs text-slate-400 font-serif italic mt-0.5">by ${escapeHtml(book.author)}</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                            <div class="flex items-center gap-1.5 text-slate-300 font-medium">
+                                <i data-lucide="feather" class="w-3.5 h-3.5 text-crimson-500"></i>
+                                <span>Rec. by <strong class="text-amber-200">${escapeHtml(book.recommend_by)}</strong></span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-mono">${formattedDate}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function applyFilters() {
+            const searchValue = document.getElementById('filter-search').value.toLowerCase().trim();
+            const formatValue = document.getElementById('filter-format').value.toLowerCase();
+            const vibeValue = document.getElementById('filter-vibe').value;
+
+            const filtered = currentBooks.filter(book => {
+                const matchesSearch = !searchValue || 
+                    book.title.toLowerCase().includes(searchValue) ||
+                    book.author.toLowerCase().includes(searchValue) ||
+                    book.recommend_by.toLowerCase().includes(searchValue);
+
+                const matchesFormat = !formatValue || book.format.toLowerCase() === formatValue;
+                const matchesVibe = !vibeValue || book.vibe === vibeValue;
+
+                return matchesSearch && matchesFormat && matchesVibe;
+            });
+
+            renderCards(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-format').value = '';
+            document.getElementById('filter-vibe').value = '';
+            applyFilters();
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const titleInput = document.getElementById('input-title').value.trim();
+            const authorInput = document.getElementById('input-author').value.trim();
+            const formatInput = document.getElementById('input-format').value;
+            const vibeInput = document.getElementById('input-vibe').value;
+            const recommendByInput = document.getElementById('input-recommend-by').value.trim();
+            const errorBox = document.getElementById('form-error');
+
+            if (!titleInput || !authorInput || !formatInput || !vibeInput || !recommendByInput) {
+                errorBox.classList.remove('hidden');
+                document.getElementById('form-error-text').innerText = "Must fill in all fields to submit";
+                lucide.createIcons();
+                return;
+            }
+
+            errorBox.classList.add('hidden');
+
+            const newBook = {
+                title: titleInput,
+                author: authorInput,
+                format: formatInput,
+                vibe: vibeInput,
+                recommend_by: recommendByInput,
+                added_at: new Date().toISOString()
+            };
+
+            currentBooks.unshift(newBook);
+            document.getElementById('recommendation-form').reset();
+            switchView('looking');
+            resetFilters();
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+
+        window.onload = function() {
+            renderCards(currentBooks);
+        };
+    </script>
+</body>
+</html>
