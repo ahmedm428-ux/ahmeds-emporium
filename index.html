@@ -313,6 +313,21 @@
                     githubUrl: "#",
                     symbol: "gamepad-2",
                     bgGradient: "from-amber-950 via-black to-slate-900"
+                },
+                {
+                    id: "book-finder",
+                    cardTitle: "BOOK FINDER",
+                    cardRoman: "III",
+                    sequence: "Sequence 5",
+                    pathway: "Hermit Pathway",
+                    category: "Web & API",
+                    title: "Grimoire Book Finder",
+                    description: "Discover and share book recommendations filtered by genre, format, and vibe with live real-time filtering.",
+                    tags: ["HTML", "Tailwind", "JS"],
+                    demoUrl: "./memory based app/book-finder.html",
+                    githubUrl: "#",
+                    symbol: "book-open",
+                    bgGradient: "from-purple-950 via-black to-slate-900"
                 }
             ]
         };
@@ -541,6 +556,7 @@
                 appData.avatar = document.getElementById('input-avatar').value;
                 appData.projects = JSON.parse(document.getElementById('input-projects-json').value);
                 
+                localStorage.setItem('lotm_portfolio_data', JSON.stringify(appData));
                 initApp();
                 closeCustomizer();
                 AudioFX.playChime();
