@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Fool — Path of the Divine</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;600;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cinzel: ['"Cinzel"', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif'],
+                    },
+                    colors: {
+                        obsidian: {
+                            800: '#151722',
+                            900: '#0c0d14',
+                            950: '#06070a',
+                        },
+                        foolGold: {
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            800: '#854d0e',
+                        },
+                        crimson: {
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            800: '#9f1239',
+                            950: '#4c0519',
+                        },
+                        ethereal: {
+                            400: '#a7f3d0',
+                            500: '#34d399',
+                            800: '#065f46',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: #06070a;
+            overflow: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Glowing Loth / Eldritch effects */
+        .crimson-glow {
+            box-shadow: 0 0 25px rgba(225, 29, 72, 0.4), inset 0 0 15px rgba(225, 29, 72, 0.2);
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+        }
+
+        .gold-border {
+            border: 1px solid rgba(234, 179, 8, 0.4);
+        }
+
+        /* Pulsing moon effect */
+        @keyframes moonPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(225, 29, 72, 0.6)); }
+            50% { transform: scale(1.03); filter: drop-shadow(0 0 35px rgba(225, 29, 72, 0.85)); }
+        }
+
+        .animate-moon {
+            animation: moonPulse 6s ease-in-out infinite;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0c0d14; }
+        ::-webkit-scrollbar-thumb { background: #854d0e; border-radius: 3px; }
+    </style>
+</head>
+<body class="h-screen w-screen relative flex items-center justify-center bg-obsidian-950 text-slate-100">
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- Top In-Game HUD (Visible during gameplay) -->
+    <div id="hud-overlay" class="absolute top-4 left-4 right-4 z-20 flex justify-between items-start pointer-events-none opacity-0 transition-opacity duration-300">
+        <!-- Sequence Title & Score -->
+        <div class="bg-obsidian-900/80 backdrop-blur-md gold-border px-4 py-2.5 rounded-2xl flex items-center gap-4 shadow-xl">
+            <div class="flex flex-col">
+                <span class="text-[10px] uppercase font-bold tracking-widest text-foolGold-400 font-cinzel">Current Beyonder Rank</span>
+                <span id="hud-sequence" class="text-sm font-extrabold text-amber-200 font-cinzel flex items-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-foolGold-400"></i>
+                    <span>Seq 9: Sleepless</span>
+                </span>
+            </div>
+            <div class="h-8 w-px bg-foolGold-800/50"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Score</span>
+                <span id="hud-score" class="text-2xl font-black text-amber-400 font-cinzel leading-none">0</span>
+            </div>
+        </div>
+
+        <!-- High Score & Shield status -->
+        <div class="flex gap-2">
+            <!-- Shield Indicator -->
+            <div id="hud-shield" class="hidden bg-obsidian-900/80 backdrop-blur-md border border-emerald-500/50 px-3 py-2 rounded-2xl items-center gap-2 shadow-xl animate-pulse">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+                <span class="text-xs font-bold text-emerald-300 font-cinzel">Fool's Protection</span>
+            </div>
+
+            <!-- Best Score -->
+            <div class="bg-obsidian-900/80 backdrop-blur-md gold-border px-4 py-2.5 rounded-2xl flex items-center gap-3 shadow-xl">
+                <i data-lucide="trophy" class="w-5 h-5 text-foolGold-400"></i>
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase font-bold text-slate-400">High Score</span>
+                    <span id="hud-high-score" class="text-base font-bold text-slate-200 font-mono leading-none">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- START / MENU OVERLAY -->
+    <div id="start-modal" class="absolute z-30 inset-0 flex items-center justify-center p-4 bg-obsidian-950/80 backdrop-blur-md transition-all duration-500">
+        <div class="max-w-md w-full bg-obsidian-900/95 gold-border rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden text-center space-y-6">
+            
+            <!-- Ambient Glow Effect -->
+            <div class="absolute -top-16 -left-16 w-40 h-40 bg-crimson-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-16 -right-16 w-40 h-40 bg-foolGold-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Header Badge -->
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-crimson-950/80 text-amber-200 rounded-full text-xs font-semibold border border-crimson-800/60 font-cinzel">
+                <i data-lucide="eye" class="w-3.5 h-3.5 text-foolGold-400"></i>
+                <span>Gothic Eldritch Arcade</span>
+            </div>
+
+            <!-- Title -->
+            <div class="space-y-1">
+                <h1 class="text-3xl sm:text-4xl font-black font-cinzel text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-foolGold-400 to-amber-500 tracking-wider">
+                    FLAPPY FOOL
+                </h1>
+                <p class="text-xs text-slate-400 font-serif italic">Ascend the Pathways to Godhood • Praise the Fool!</p>
+            </div>
+
+            <!-- Controls Banner -->
+            <div class="bg-obsidian-950/90 rounded-2xl p-4 border border-slate-800/80 text-xs text-slate-300 space-y-2 text-left">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                    <span class="font-bold text-amber-300 font-cinzel flex items-center gap-1.5">
+                        <i data-lucide="gamepad-2" class="w-4 h-4 text-foolGold-400"></i> How to Play
+                    </span>
+                    <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Tap / Space</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed text-[11px]">
+                    Guide <strong class="text-amber-200">Mr. Fool</strong> through the crimson fog. Dodge the ancient tentacle spires and collect floating <strong class="text-foolGold-400">Tarot Cards</strong> to gain shields and boost your Beyonder Sequence!
+                </p>
+                <div class="flex items-center justify-between pt-1 text-[10px] text-slate-500 font-mono">
+                    <span>• Spacebar / Left Click / Tap</span>
+                    <span>• Collect Cards for Shields</span>
+                </div>
+            </div>
+
+            <!-- Difficulty Selector -->
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-amber-200 font-cinzel text-left">Select Pathway Difficulty</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setDifficulty('easy')" id="diff-easy" class="diff-btn py-2 text-xs font-bold rounded-xl border border-slate-800 bg-obsidian-950 text-slate-400 hover:border-amber-500 transition-all font-cinzel">
+                        Sequence 9<br><span class="text-[9px] font-sans font-normal opacity-80">Easier</span>
+                    </button>
+                    <button onclick="setDifficulty('normal')" id="diff-normal" class="diff-btn py-2 text-xs font-bold rounded-xl border border-foolGold-500/80 bg-foolGold-600/20 text-amber-200 hover:border-foolGold-400 transition-all font-cinzel">
+                        Sequence 5<br><span class="text-[9px] font-sans font-normal opacity-80">Normal</span>
+                    </button>
+                    <button onclick="setDifficulty('hard')" id="diff-hard" class="diff-btn py-2 text-xs font-bold rounded-xl border border-slate-800 bg-obsidian-950 text-slate-400 hover:border-crimson-500 transition-all font-cinzel">
+                        Sequence 0<br><span class="text-[9px] font-sans font-normal opacity-80">Eldritch</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button onclick="startGame()" class="w-full py-3.5 px-6 bg-gradient-to-r from-amber-600 via-foolGold-500 to-amber-600 hover:brightness-110 text-obsidian-950 font-black font-cinzel text-base rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 group cursor-pointer">
+                <i data-lucide="play" class="w-5 h-5 fill-obsidian-950 transition-transform group-hover:scale-110"></i>
+                <span>COMMENCE ASCENSION</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div id="gameover-modal" class="hidden absolute z-30 inset-0 flex items-center justify-center p-4 bg-obsidian-950/85 backdrop-blur-md">
+        <div class="max-w-md w-full bg-obsidian-900/95 border border-crimson-700/60 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden text-center space-y-5 animate-in fade-in zoom-in duration-300">
+            
+            <!-- Red Moon Glow Background -->
+            <div class="absolute -top-20 inset-x-0 h-40 bg-crimson-800/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Icon Header -->
+            <div class="w-16 h-16 mx-auto bg-crimson-950/80 border border-crimson-600 text-crimson-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <i data-lucide="skull" class="w-8 h-8"></i>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-black font-cinzel text-crimson-500">INSANITY SUCCUMBED</h2>
+                <p id="gameover-quote" class="text-xs text-slate-400 font-serif italic mt-1">
+                    "The whispers of the cosmos overwhelmed your spirit body..."
+                </p>
+            </div>
+
+            <!-- Stats Box -->
+            <div class="bg-obsidian-950/90 rounded-2xl p-4 border border-slate-800 grid grid-cols-2 gap-4">
+                <div class="border-r border-slate-800 pr-2">
+                    <span class="text-[10px] uppercase font-bold text-slate-500">Final Score</span>
+                    <p id="gameover-score" class="text-3xl font-black font-cinzel text-amber-400">0</p>
+                </div>
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-500">Highest Sequence</span>
+                    <p id="gameover-sequence" class="text-sm font-bold font-cinzel text-slate-200 mt-1">Seq 9: Sleepless</p>
+                </div>
+            </div>
+
+            <!-- New High Score Toast -->
+            <div id="new-highscore-badge" class="hidden bg-amber-500/10 border border-amber-500/40 px-3 py-1.5 rounded-xl text-amber-300 text-xs font-bold font-cinzel flex items-center justify-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-foolGold-400"></i>
+                <span>NEW HIGHEST ASCENSION SCORE!</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3 pt-2">
+                <button onclick="returnToMenu()" class="flex-1 py-3 px-4 bg-obsidian-950 hover:bg-slate-800 text-slate-300 font-bold font-cinzel text-xs rounded-xl border border-slate-800 transition-all">
+                    Main Menu
+                </button>
+                <button onclick="startGame()" class="flex-1 py-3 px-4 bg-gradient-to-r from-amber-600 to-foolGold-600 hover:brightness-110 text-obsidian-950 font-black font-cinzel text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span>Try Again</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants & Configuration
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Beyonder Sequence Ranks based on Score
+        const SEQUENCES = [
+            { minScore: 0, title: "Seq 9: Sleepless", color: "#a7f3d0" },
+            { minScore: 5, title: "Seq 8: Clown", color: "#fcd34d" },
+            { minScore: 12, title: "Seq 7: Magician", color: "#c084fc" },
+            { minScore: 20, title: "Seq 6: Faceless", color: "#38bdf8" },
+            { minScore: 30, title: "Seq 5: Marionettist", color: "#f43f5e" },
+            { minScore: 45, title: "Seq 4: Bizarro Sorcerer", color: "#fb923c" },
+            { minScore: 60, title: "Seq 0: The Fool", color: "#facc15" }
+        ];
+
+        // Insanity Quotes for Game Over Screen
+        const DEATH_QUOTES = [
+            "The whispers of the Crimson Moon claimed your sanity...",
+            "Your spirit body was dragged into the Gray Fog.",
+            "Excessive Beyonder characteristic convergence destroyed your mind.",
+            "You gazed into the eldritch void, and it gazed back.",
+            "Loss of control occurred! You morphed into a mindless monster."
+        ];
+
+        // Game State Variables
+        let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('flappy_fool_highscore') || '0');
+        let currentDifficulty = 'normal'; // 'easy', 'normal', 'hard'
+        let hasShield = false;
+        let animationFrameId = null;
+
+        // Difficulty Tuning
+        const DIFFICULTY_SETTINGS = {
+            easy: { gravity: 0.38, jump: -7.5, speed: 2.2, gap: 190, spawnRate: 110 },
+            normal: { gravity: 0.45, jump: -8.2, speed: 2.8, gap: 160, spawnRate: 95 },
+            hard: { gravity: 0.52, jump: -8.8, speed: 3.5, gap: 135, spawnRate: 80 }
+        };
+
+        // Web Audio Synthesizer for Retro Sound FX
+        const AudioEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playJump() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(640, this.ctx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.12);
+                } catch(e){}
+            },
+            playScore() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08); // E5
+                    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.2);
+                } catch(e){}
+            },
+            playCard() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1760, this.ctx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.25);
+                } catch(e){}
+            },
+            playDeath() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.4);
+                } catch(e){}
+            }
+        };
+
+        // Player (Mr. Fool Sprite) Definition
+        const player = {
+            x: 100,
+            y: 300,
+            width: 36,
+            height: 36,
+            vy: 0,
+            rotation: 0,
+            trail: [],
+
+            reset() {
+                this.x = Math.min(canvas.width * 0.25, 120);
+                this.y = canvas.height / 2;
+                this.vy = 0;
+                this.rotation = 0;
+                this.trail = [];
+            },
+
+            jump() {
+                const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+                this.vy = settings.jump;
+                AudioEngine.playJump();
+
+                // Spawn jump magic particles
+                for (let i = 0; i < 8; i++) {
+                    particles.push(new Particle(
+                        this.x, 
+                        this.y + 10, 
+                        (Math.random() - 0.5) * 3, 
+                        Math.random() * 2 + 1, 
+                        '#facc15',
+                        Math.random() * 4 + 2
+                    ));
+                }
+            },
+
+            update() {
+                const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+                this.vy += settings.gravity;
+                this.y += this.vy;
+
+                // Rotation based on velocity
+                this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 5, this.vy * 0.06));
+
+                // Save trail positions
+                this.trail.push({ x: this.x, y: this.y, alpha: 0.6 });
+                if (this.trail.length > 8) this.trail.shift();
+
+                // Fade trail
+                this.trail.forEach(t => t.alpha -= 0.06);
+            },
+
+            draw() {
+                // Draw Fool Spirit Trail
+                this.trail.forEach((t) => {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, t.alpha);
+                    ctx.fillStyle = hasShield ? '#10b981' : '#eab308';
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                // Shield Aura if Active
+                if (hasShield) {
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#10b981';
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 24, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // --- Draw Mr. Fool Sprite (Hooded Cloak, Top Hat, Monocle) ---
+                
+                // Outer Glow
+                ctx.shadowColor = '#eab308';
+                ctx.shadowBlur = 10;
+
+                // Black / Purple Hooded Cloak
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.ellipse(0, 4, 16, 18, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner Crimson Vestment
+                ctx.fillStyle = '#9f1239';
+                ctx.beginPath();
+                ctx.ellipse(0, 6, 8, 12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Glowing Eye / Monocle on right side
+                ctx.fillStyle = '#facc15';
+                ctx.shadowColor = '#facc15';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(5, -2, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Monocle Chain
+                ctx.strokeStyle = '#eab308';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(5, 2);
+                ctx.lineTo(8, 10);
+                ctx.stroke();
+
+                // Top Hat
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#1e1b4b'; // Deep Navy / Black
+                // Brim
+                ctx.fillRect(-14, -10, 28, 4);
+                // Crown
+                ctx.fillRect(-9, -24, 18, 14);
+                // Gold Ribbon on Hat
+                ctx.fillStyle = '#ca8a04';
+                ctx.fillRect(-9, -12, 18, 3);
+
+                ctx.restore();
+            }
+        };
+
+        // Obstacles (Eldritch Tentacle Pillars)
+        let obstacles = [];
+        let spawnTimer = 0;
+
+        class Obstacle {
+            constructor() {
+                const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+                this.x = canvas.width + 50;
+                this.width = 60;
+                this.gap = settings.gap;
+                this.passed = false;
+
+                // Random top pillar height
+                const minHeight = 60;
+                const maxHeight = canvas.height - this.gap - minHeight - 60;
+                this.topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+                this.bottomY = this.topHeight + this.gap;
+                this.bottomHeight = canvas.height - this.bottomY;
+
+                // Randomly assign a tarot card collectible in gap
+                this.hasCard = Math.random() < 0.35;
+                this.cardY = this.topHeight + this.gap / 2 + (Math.random() * 40 - 20);
+                this.cardCollected = false;
+            }
+
+            update() {
+                const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+                this.x -= settings.speed;
+            }
+
+            draw() {
+                ctx.save();
+
+                // Draw Top Eldritch Tentacle Pillar
+                this.drawPillar(this.x, 0, this.width, this.topHeight, true);
+
+                // Draw Bottom Eldritch Tentacle Pillar
+                this.drawPillar(this.x, this.bottomY, this.width, this.bottomHeight, false);
+
+                // Draw Floating Tarot Card Collectible
+                if (this.hasCard && !this.cardCollected) {
+                    this.drawTarotCard(this.x + this.width / 2, this.cardY);
+                }
+
+                ctx.restore();
+            }
+
+            drawPillar(x, y, w, h, isTop) {
+                // Gradient for Tentacle Stone Column
+                const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+                grad.addColorStop(0, '#111827');
+                grad.addColorStop(0.5, '#1f2937');
+                grad.addColorStop(1, '#0b0f19');
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(x, y, w, h);
+
+                // Glowing Crimson Runes along the pillar
+                ctx.strokeStyle = '#f43f5e';
+                ctx.shadowColor = '#f43f5e';
+                ctx.shadowBlur = 8;
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                const startY = isTop ? y : y + 10;
+                const endY = isTop ? y + h - 10 : y + h;
+                
+                for (let py = startY + 15; py < endY - 15; py += 30) {
+                    ctx.moveTo(x + 12, py);
+                    ctx.lineTo(x + w - 12, py);
+                    ctx.arc(x + w / 2, py, 4, 0, Math.PI * 2);
+                }
+                ctx.stroke();
+
+                // Cap / Tentacle Tip
+                ctx.fillStyle = '#881337';
+                ctx.shadowBlur = 12;
+                if (isTop) {
+                    ctx.fillRect(x - 5, y + h - 15, w + 10, 15);
+                } else {
+                    ctx.fillRect(x - 5, y, w + 10, 15);
+                }
+            }
+
+            drawTarotCard(cx, cy) {
+                ctx.save();
+                ctx.translate(cx, cy);
+
+                // Floating bounce motion
+                const hoverOffset = Math.sin(Date.now() * 0.005) * 4;
+                ctx.translate(0, hoverOffset);
+
+                // Card Glow
+                ctx.shadowColor = '#facc15';
+                ctx.shadowBlur = 12;
+
+                // Card Body
+                ctx.fillStyle = '#1e1b4b';
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = 2;
+
+                ctx.fillRect(-12, -18, 24, 36);
+                ctx.strokeRect(-12, -18, 24, 36);
+
+                // Eye Symbol inside Card
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Particle System
+        let particles = [];
+
+        class Particle {
+            constructor(x, y, vx, vy, color, size) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.size = size;
+                this.alpha = 1;
+                this.life = 1;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= 0.02;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Background Fog & Crimson Moon Parallax
+        let moonAngle = 0;
+
+        function drawBackground() {
+            // Dark Cosmic Sky
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, '#06070a');
+            bgGrad.addColorStop(0.6, '#0f111a');
+            bgGrad.addColorStop(1, '#180e19');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Crimson Moon in Top Right
+            ctx.save();
+            const moonX = canvas.width * 0.8;
+            const moonY = Math.min(canvas.height * 0.2, 120);
+            const moonRadius = 45;
+
+            // Crimson Moon Glow
+            ctx.shadowColor = '#e11d48';
+            ctx.shadowBlur = 30 + Math.sin(moonAngle) * 10;
+            moonAngle += 0.02;
+
+            ctx.fillStyle = '#be123c';
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Moon Craters / Texture
+            ctx.fillStyle = '#881337';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(moonX - 12, moonY - 10, 10, 0, Math.PI * 2);
+            ctx.arc(moonX + 15, moonY + 8, 14, 0, Math.PI * 2);
+            ctx.arc(moonX - 5, moonY + 18, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Background Mystical Stars
+            ctx.fillStyle = 'rgba(253, 224, 71, 0.4)';
+            for (let i = 0; i < 25; i++) {
+                const starX = (i * 97) % canvas.width;
+                const starY = (i * 53) % (canvas.height * 0.6);
+                const starSize = (i % 3) + 1;
+                ctx.fillRect(starX, starY, starSize, starSize);
+            }
+
+            // Ground Mist / Eldritch Fog
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+
+            ctx.strokeStyle = 'rgba(234, 179, 8, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - 30);
+            ctx.lineTo(canvas.width, canvas.height - 30);
+            ctx.stroke();
+        }
+
+        function checkCollisions() {
+            // Floor & Ceiling bounds
+            if (player.y - player.height / 2 <= 0 || player.y + player.height / 2 >= canvas.height - 30) {
+                triggerGameOver();
+                return;
+            }
+
+            // Obstacle collisions
+            for (let obs of obstacles) {
+                // Check X bounds
+                if (player.x + 12 > obs.x && player.x - 12 < obs.x + obs.width) {
+                    // Check Y bounds (Top or Bottom Pillar collision)
+                    if (player.y - 12 < obs.topHeight || player.y + 12 > obs.bottomY) {
+                        if (hasShield) {
+                            // Shield saves player once!
+                            hasShield = false;
+                            document.getElementById('hud-shield').classList.add('hidden');
+                            AudioEngine.playCard();
+
+                            // Shield shatter particles
+                            for (let i = 0; i < 20; i++) {
+                                particles.push(new Particle(
+                                    player.x, player.y, 
+                                    (Math.random() - 0.5) * 8, 
+                                    (Math.random() - 0.5) * 8, 
+                                    '#10b981', 
+                                    Math.random() * 5 + 2
+                                ));
+                            }
+
+                            // Push obstacle past player to clear
+                            obs.x = -100;
+                        } else {
+                            triggerGameOver();
+                            return;
+                        }
+                    }
+                }
+
+                // Check Tarot Card collection
+                if (obs.hasCard && !obs.cardCollected) {
+                    const cardX = obs.x + obs.width / 2;
+                    const dist = Math.hypot(player.x - cardX, player.y - obs.cardY);
+                    if (dist < 32) {
+                        obs.cardCollected = true;
+                        hasShield = true;
+                        AudioEngine.playCard();
+                        document.getElementById('hud-shield').classList.remove('hidden');
+                        document.getElementById('hud-shield').classList.add('flex');
+
+                        // Card collect particle burst
+                        for (let i = 0; i < 15; i++) {
+                            particles.push(new Particle(
+                                cardX, obs.cardY, 
+                                (Math.random() - 0.5) * 6, 
+                                (Math.random() - 0.5) * 6, 
+                                '#facc15', 
+                                Math.random() * 4 + 2
+                            ));
+                        }
+                    }
+                }
+
+                // Score increment when passing pillar
+                if (!obs.passed && obs.x + obs.width < player.x) {
+                    obs.passed = true;
+                    score++;
+                    AudioEngine.playScore();
+                    updateHUD();
+                }
+            }
+        }
+
+        function getCurrentSequenceInfo(currentScore) {
+            let seq = SEQUENCES[0];
+            for (let s of SEQUENCES) {
+                if (currentScore >= s.minScore) {
+                    seq = s;
+                }
+            }
+            return seq;
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-score').innerText = score;
+            const seqInfo = getCurrentSequenceInfo(score);
+            const hudSeqEl = document.getElementById('hud-sequence');
+            hudSeqEl.innerText = seqInfo.title;
+            hudSeqEl.style.color = seqInfo.color;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('flappy_fool_highscore', highScore.toString());
+                document.getElementById('hud-high-score').innerText = highScore;
+            }
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground();
+
+            if (gameState === 'PLAYING') {
+                // Update & Draw Player
+                player.update();
+                player.draw();
+
+                // Spawn Obstacles
+                const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+                spawnTimer++;
+                if (spawnTimer >= settings.spawnRate) {
+                    obstacles.push(new Obstacle());
+                    spawnTimer = 0;
+                }
+
+                // Update & Draw Obstacles
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].update();
+                    obstacles[i].draw();
+
+                    // Remove offscreen obstacles
+                    if (obstacles[i].x < -100) {
+                        obstacles.splice(i, 1);
+                    }
+                }
+
+                // Update & Draw Particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    particles[i].draw();
+                    if (particles[i].alpha <= 0) particles.splice(i, 1);
+                }
+
+                checkCollisions();
+            } else if (gameState === 'START') {
+                // Idle floating player on Start Screen
+                player.y = canvas.height / 2 + Math.sin(Date.now() * 0.003) * 12;
+                player.draw();
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            AudioEngine.init();
+            gameState = 'PLAYING';
+            score = 0;
+            hasShield = false;
+            obstacles = [];
+            particles = [];
+            spawnTimer = 0;
+
+            player.reset();
+
+            // Hide Modals, Show HUD
+            document.getElementById('start-modal').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => document.getElementById('start-modal').classList.add('hidden'), 300);
+            
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('hud-overlay').classList.remove('opacity-0');
+            document.getElementById('hud-shield').classList.add('hidden');
+
+            updateHUD();
+            document.getElementById('hud-high-score').innerText = highScore;
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            AudioEngine.playDeath();
+
+            // Death Particle Explosion
+            for (let i = 0; i < 35; i++) {
+                particles.push(new Particle(
+                    player.x, player.y,
+                    (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 10,
+                    '#f43f5e',
+                    Math.random() * 6 + 2
+                ));
+            }
+
+            // Populate Game Over Modal
+            document.getElementById('gameover-score').innerText = score;
+            const seqInfo = getCurrentSequenceInfo(score);
+            document.getElementById('gameover-sequence').innerText = seqInfo.title;
+
+            const randomQuote = DEATH_QUOTES[Math.floor(Math.random() * DEATH_QUOTES.length)];
+            document.getElementById('gameover-quote').innerText = `"${randomQuote}"`;
+
+            // Check if new High Score
+            const newHigh = document.getElementById('new-highscore-badge');
+            if (score > 0 && score >= highScore) {
+                newHigh.classList.remove('hidden');
+            } else {
+                newHigh.classList.add('hidden');
+            }
+
+            // Show Game Over Modal
+            setTimeout(() => {
+                document.getElementById('gameover-modal').classList.remove('hidden');
+            }, 500);
+        }
+
+        function returnToMenu() {
+            gameState = 'START';
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('hud-overlay').classList.add('opacity-0');
+            
+            const startModal = document.getElementById('start-modal');
+            startModal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            player.reset();
+        }
+
+        function setDifficulty(diff) {
+            currentDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.className = "diff-btn py-2 text-xs font-bold rounded-xl border border-slate-800 bg-obsidian-950 text-slate-400 hover:border-amber-500 transition-all font-cinzel";
+            });
+
+            const activeBtn = document.getElementById(`diff-${diff}`);
+            if (diff === 'easy') {
+                activeBtn.className = "diff-btn py-2 text-xs font-bold rounded-xl border border-emerald-500/80 bg-emerald-600/20 text-emerald-200 hover:border-emerald-400 transition-all font-cinzel";
+            } else if (diff === 'normal') {
+                activeBtn.className = "diff-btn py-2 text-xs font-bold rounded-xl border border-foolGold-500/80 bg-foolGold-600/20 text-amber-200 hover:border-foolGold-400 transition-all font-cinzel";
+            } else {
+                activeBtn.className = "diff-btn py-2 text-xs font-bold rounded-xl border border-crimson-500/80 bg-crimson-600/20 text-crimson-200 hover:border-crimson-400 transition-all font-cinzel";
+            }
+        }
+
+        function handleInput(e) {
+            if (e.type === 'keydown' && e.code !== 'Space' && e.code !== 'ArrowUp') return;
+            if (e.type === 'keydown') e.preventDefault();
+
+            if (gameState === 'PLAYING') {
+                player.jump();
+            }
+        }
+
+        function handleResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (gameState === 'START') player.reset();
+        }
+
+        // Register Event Listeners
+        window.addEventListener('keydown', handleInput);
+        window.addEventListener('touchstart', (e) => {
+            if (gameState === 'PLAYING') {
+                e.preventDefault();
+                player.jump();
+            }
+        }, { passive: false });
+        window.addEventListener('mousedown', (e) => {
+            // Only jump if clicking outside modal buttons
+            if (gameState === 'PLAYING' && !e.target.closest('button')) {
+                player.jump();
+            }
+        });
+        window.addEventListener('resize', handleResize);
+
+        // Window Load Initialization
+        window.onload = function() {
+            handleResize();
+            lucide.createIcons();
+            document.getElementById('hud-high-score').innerText = highScore;
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
