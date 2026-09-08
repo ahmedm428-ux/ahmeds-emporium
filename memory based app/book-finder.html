@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400;1,700&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         tailwind.config = {
@@ -629,7 +631,7 @@
             applyFilters();
         }
 
-        function handleFormSubmit(event) {
+        async function handleFormSubmit(event) {
             event.preventDefault();
             
             const titleInput = document.getElementById('input-title').value.trim();
@@ -648,9 +650,31 @@
 
             errorBox.classList.add('hidden');
 
-            const newBook = {
-                title: titleInput,
-                author: authorInput,
+            // 1. Build book object to match Supabase column names
+    const newBook = {
+        title: titleInput,
+        author: authorInput,
+        pathway: formatInput, // mapping format to pathway
+        summary: vibeInput,   // mapping vibe to summary
+        quote: recommendByInput
+    };
+
+    // 2. Insert directly into Supabase table
+    const { data, error } = await supabaseClient
+        .from('books')
+        .insert([newBook]);
+
+    if (error) {
+        console.error('Error adding book:', error);
+        alert('Could not save book to Supabase.');
+        return;
+    }
+
+    // 3. Reload books from database and reset view
+    await fetchBooks();
+    document.getElementById('recommendation-form').reset();
+    switchView('looking');
+    resetFilters();
                 format: formatInput,
                 vibe: vibeInput,
                 recommend_by: recommendByInput,
@@ -675,8 +699,28 @@
             });
         }
 
-        window.onload = function() {
+        // Initialize Supabase Client
+        const SUPABASE_URL = 'https://nftwjoxilnspgdjfyp.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mdHdqb3hpbG5zcGdkamxmaXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NDkyMjUsImV4cCI6MjEwNDQyNTIyNX0.vLjD_UV4a5boSGXGttVY0Xs7J5EbkigNeZB8HAFRFls';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Fetch books from database
+        async function fetchBooks() {
+            const { data: books, error } = await supabaseClient
+                .from('books')
+                .select('*');
+
+            if (error) {
+                console.error('Error fetching books:', error);
+                return;
+            }
+
+            currentBooks = books;
             renderCards(currentBooks);
+        }
+
+        window.onload = function() {
+            fetchBooks();
         };
     </script>
 </body>
