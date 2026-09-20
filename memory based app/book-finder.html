@@ -358,7 +358,8 @@
         async function fetchBooks() {
             const { data: books, error } = await supabaseClient
                 .from('books')
-                .select('*');
+                .select('*')
+                .order('created_at', { ascending: false });
 
             if (error) {
                 console.error('Error fetching books:', error);
