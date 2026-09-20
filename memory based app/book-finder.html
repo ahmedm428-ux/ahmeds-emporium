@@ -144,6 +144,11 @@
                         <span class="text-xs font-medium text-slate-300">Saved Books:</span>
                         <span id="live-book-count" class="font-bold font-mono text-base text-foolGold-400">0</span>
                     </div>
+                    <!-- Sort Dropdown -->
+                    <select id="sort-order" onchange="handleSortChange()" class="bg-obsidian-950 text-slate-300 text-xs rounded-lg p-2 border border-slate-700 focus:outline-none cursor-pointer">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
                 </div>
 
                 <!-- Filter Controls Grid -->
@@ -393,6 +398,22 @@
             }
             lucide.createIcons();
         }
+        function handleSortChange() {
+            const sortOrder = document.getElementById('sort-order').value;
+
+            const sortedBooks = [...currentBooks].sort((a, b) => {
+                const dateA = new Date(a.created_at || a.added_at || 0);
+                const dateB = new Date(b.created_at || b.added_at || 0);
+
+                if (sortOrder === 'oldest') {
+                return dateA - dateB;
+                } else {
+                return dateB - dateA;
+                }
+            });
+
+            renderCards(sortedBooks);
+            }
 
         function renderCards(booksToRender) {
             const grid = document.getElementById('cards-grid');
