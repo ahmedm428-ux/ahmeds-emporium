@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlavorVault - Personal Recipe Vault</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+
+  <!-- Navigation Bar -->
+  <nav class="border-b border-gray-800 bg-gray-950 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <span class="text-2xl">🍳</span>
+      <h1 class="text-xl font-bold text-amber-500">FlavorVault</h1>
+    </div>
+    <div id="nav-user-area" class="hidden flex items-center space-x-4">
+      <span id="user-display" class="font-medium text-amber-400">@username</span>
+      <button id="btn-nav-change-pw" class="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded">Change Password</button>
+      <button id="btn-signout" class="text-xs bg-red-900/50 hover:bg-red-800 text-red-200 px-3 py-1.5 rounded">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto p-6">
+    
+    <!-- Auth Section (When signed out) -->
+    <section id="auth-section" class="max-w-md mx-auto bg-gray-800 p-6 rounded-xl shadow-lg mt-10">
+      <h2 class="text-2xl font-bold mb-6 text-center text-amber-400">Welcome to FlavorVault</h2>
+      
+      <!-- GitHub Auth -->
+      <button id="btn-github-auth" class="w-full bg-gray-700 hover:bg-gray-600 font-medium py-2.5 rounded-lg mb-4 flex items-center justify-center space-x-2">
+        <span>Sign in with GitHub</span>
+      </button>
+
+      <div class="relative my-4">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-700"></div></div>
+        <div class="relative flex justify-center text-xs text-gray-400"><span class="bg-gray-800 px-2">or Email</span></div>
+      </div>
+
+      <!-- Email Auth Form -->
+      <form id="auth-form" class="space-y-4" onsubmit="return false;">
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Email</label>
+          <input type="email" id="auth-email" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-amber-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Password</label>
+          <input type="password" id="auth-password" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-amber-500 outline-none">
+          <p class="text-xs text-gray-400 mt-1">Requirements: Min 8 chars, uppercase, lowercase, & number.</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" id="btn-email-signin" class="w-1/2 bg-amber-600 hover:bg-amber-500 font-semibold py-2 rounded text-sm">Sign In</button>
+          <button type="button" id="btn-email-signup" class="w-1/2 bg-gray-700 hover:bg-gray-600 font-semibold py-2 rounded text-sm">Sign Up</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Username Onboarding Modal -->
+    <div id="onboarding-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4">
+      <div class="bg-gray-800 p-6 rounded-xl max-w-sm w-full space-y-4 border border-amber-500/30">
+        <h3 class="text-xl font-bold text-amber-400">Choose your Username</h3>
+        <p class="text-sm text-gray-300">Set a unique username to personalize your recipe vault.</p>
+        <input type="text" id="input-username" placeholder="e.g. chef_alex" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm">
+        <button id="btn-save-username" class="w-full bg-amber-600 hover:bg-amber-500 font-semibold py-2 rounded text-sm">Save & Continue</button>
+      </div>
+    </div>
+
+    <!-- App Dashboard (When signed in) -->
+    <section id="dashboard-section" class="hidden space-y-8">
+      
+      <!-- New Recipe & Upload Form -->
+      <div class="bg-gray-800 p-6 rounded-xl">
+        <h3 class="text-lg font-bold text-amber-400 mb-4">Add Private Recipe</h3>
+        <form id="recipe-form" class="space-y-4">
+          <div>
+            <input type="text" id="recipe-title" placeholder="Recipe Title" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm">
+          </div>
+          <div>
+            <textarea id="recipe-instructions" placeholder="Ingredients and Cooking Instructions..." rows="4" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-300 mb-1">Upload Recipe Photo / PDF (Max 5MB)</label>
+            <input type="file" id="recipe-file" accept="image/jpeg,image/png,image/webp,application/pdf" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-gray-200 hover:file:bg-gray-600">
+          </div>
+          <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-6 py-2 rounded text-sm">Save Recipe</button>
+        </form>
+      </div>
+
+      <!-- Recipes List -->
+      <div>
+        <h3 class="text-lg font-bold text-amber-400 mb-4">My Private Recipes</h3>
+        <div id="recipes-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Dynamically populated recipes appear here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Change Password Modal -->
+    <div id="password-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4">
+      <div class="bg-gray-800 p-6 rounded-xl max-w-sm w-full space-y-4">
+        <h3 class="text-xl font-bold text-amber-400">Change Password</h3>
+        <input type="password" id="new-password" placeholder="New Password" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm">
+        <div class="flex gap-2">
+          <button id="btn-update-pw" class="w-1/2 bg-amber-600 hover:bg-amber-500 font-semibold py-2 rounded text-sm">Update</button>
+          <button id="btn-close-pw-modal" class="w-1/2 bg-gray-700 hover:bg-gray-600 font-semibold py-2 rounded text-sm">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Load Supabase CDN Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</body>
+</html>
