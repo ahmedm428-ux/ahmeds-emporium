@@ -32,7 +32,10 @@ function handleUserSignedIn(user) {
   document.getElementById("auth-section").classList.add("hidden");
   document.getElementById("dashboard-section").classList.remove("hidden");
   document.getElementById("nav-user-area").classList.remove("hidden");
-  document.getElementById("user-display").textContent = user.email;
+  
+  // Display GitHub username or Email
+  const displayName = user.user_metadata?.preferred_username || user.user_metadata?.user_name || user.email;
+  document.getElementById("user-display").textContent = displayName;
 }
 
 function showAuthSection() {
@@ -41,7 +44,7 @@ function showAuthSection() {
   document.getElementById("auth-section").classList.remove("hidden");
 }
 
-// Sign Up Handler
+// Sign Up Handler (Email)
 async function signUpWithEmail(email, password) {
   if (!email || !password) {
     alert("Please enter both an email and password.");
@@ -55,7 +58,7 @@ async function signUpWithEmail(email, password) {
   }
 }
 
-// Sign In Handler
+// Sign In Handler (Email)
 async function signInWithEmail(email, password) {
   if (!email || !password) {
     alert("Please enter both an email and password.");
@@ -67,10 +70,25 @@ async function signInWithEmail(email, password) {
   }
 }
 
+// Sign In Handler (GitHub OAuth)
+async function signInWithGitHub() {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname
+    }
+  });
+  
+  if (error) {
+    alert("GitHub Sign In Error: " + error.message);
+  }
+}
+
 // Event Listeners
 function setupEventListeners() {
   const btnSignup = document.getElementById("btn-email-signup");
   const btnSignin = document.getElementById("btn-email-signin");
+  const btnGithub = document.getElementById("btn-github-auth");
   const btnSignout = document.getElementById("btn-signout");
 
   if (btnSignup) {
@@ -87,6 +105,10 @@ function setupEventListeners() {
       const password = document.getElementById("auth-password").value;
       signInWithEmail(email, password);
     });
+  }
+
+  if (btnGithub) {
+    btnGithub.addEventListener("click", signInWithGitHub);
   }
 
   if (btnSignout) {
