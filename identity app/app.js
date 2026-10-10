@@ -72,15 +72,19 @@ async function signInWithEmail(email, password) {
 
 // Sign In Handler (GitHub OAuth)
 async function signInWithGitHub() {
-  const { error } = await supabaseClient.auth.signInWithOAuth({
+  const { data, error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'github',
     options: {
-      redirectTo: window.location.origin + window.location.pathname
+      redirectTo: window.location.origin + window.location.pathname,
+      skipBrowserRedirect: true
     }
   });
   
   if (error) {
     alert("GitHub Sign In Error: " + error.message);
+  } else if (data?.url) {
+    // Redirect the top portfolio window instead of the iframe
+    window.top.location.href = data.url;
   }
 }
 
