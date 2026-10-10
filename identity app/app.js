@@ -70,7 +70,7 @@ async function signInWithEmail(email, password) {
   }
 }
 
-// Sign In Handler (GitHub OAuth)
+// Sign In Handler (GitHub OAuth - Compact Popup)
 async function signInWithGitHub() {
   const { data, error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'github',
@@ -79,12 +79,21 @@ async function signInWithGitHub() {
       skipBrowserRedirect: true
     }
   });
-  
+
   if (error) {
     alert("GitHub Sign In Error: " + error.message);
   } else if (data?.url) {
-    // Redirect the top portfolio window instead of the iframe
-    window.top.location.href = data.url;
+    // Center a small popup window over the screen
+    const width = 600;
+    const height = 700;
+    const left = (window.innerWidth - width) / 2 + window.screenX;
+    const top = (window.innerHeight - height) / 2 + window.screenY;
+
+    window.open(
+      data.url,
+      'GitHubSignIn',
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`
+    );
   }
 }
 
