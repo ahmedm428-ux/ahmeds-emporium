@@ -1,124 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlavorVault - Personal Recipe Vault</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Public Recipe Vault & Identity</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center justify-start p-6">
 
-  <!-- Navigation Bar -->
-  <nav class="border-b border-gray-800 bg-gray-950 px-6 py-4 flex justify-between items-center">
-    <div class="flex items-center space-x-2">
-      <span class="text-2xl">🍳</span>
-      <h1 class="text-xl font-bold text-amber-500">FlavorVault</h1>
-    </div>
-    <div id="nav-user-area" class="hidden flex items-center space-x-4">
-      <span id="user-display" class="font-medium text-amber-400">@username</span>
-      <button id="btn-nav-change-pw" class="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded">Change Password</button>
-      <button id="btn-signout" class="text-xs bg-red-900/50 hover:bg-red-800 text-red-200 px-3 py-1.5 rounded">Sign Out</button>
-    </div>
-  </nav>
-
-  <!-- Main Container -->
-  <main class="max-w-4xl mx-auto p-6">
+  <!-- Header Navigation -->
+  <header class="w-full max-w-4xl flex justify-between items-center pb-6 mb-6 border-b border-gray-800">
+    <h1 class="text-2xl font-bold tracking-wide text-amber-400">Public Recipe Vault</h1>
     
-    <!-- Auth Section (When signed out) -->
-    <section id="auth-section" class="max-w-md mx-auto bg-gray-800 p-6 rounded-xl shadow-lg mt-10">
-      <h2 class="text-2xl font-bold mb-6 text-center text-amber-400">Welcome to FlavorVault</h2>
-      
-      <!-- GitHub Auth -->
-      <button id="btn-github-auth" class="w-full bg-gray-700 hover:bg-gray-600 font-medium py-2.5 rounded-lg mb-4 flex items-center justify-center space-x-2">
+    <div id="nav-user-area" class="hidden flex items-center space-x-4">
+      <span class="text-sm text-gray-300">Signed in as: <strong id="user-display" class="text-white"></strong></span>
+      <button id="btn-signout" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-xs font-semibold rounded-lg transition">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-4xl space-y-8">
+    
+    <!-- Auth Section (Shown when user is signed out) -->
+    <section id="auth-section" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl max-w-md mx-auto">
+      <h2 class="text-xl font-semibold mb-2 text-center">Sign In to Vault</h2>
+      <p class="text-sm text-gray-400 text-center mb-6">Access your saved profile identity</p>
+
+      <!-- GitHub Auth Button -->
+      <button id="btn-github-auth" class="w-full bg-gray-700 hover:bg-gray-600 font-medium py-2.5 rounded-lg mb-4 flex items-center justify-center space-x-2 transition">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
         <span>Sign in with GitHub</span>
       </button>
 
       <div class="relative my-4">
         <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-700"></div></div>
-        <div class="relative flex justify-center text-xs text-gray-400"><span class="bg-gray-800 px-2">or Email</span></div>
+        <div class="relative flex justify-center text-xs uppercase"><span class="bg-gray-800 px-2 text-gray-400">Or with email</span></div>
       </div>
 
-      <!-- Email Auth Form -->
-      <form id="auth-form" class="space-y-4" onsubmit="return false;">
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Email</label>
-          <input type="email" id="auth-email" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-amber-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Password</label>
-          <input type="password" id="auth-password" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-amber-500 outline-none">
-          <p class="text-xs text-gray-400 mt-1">Requirements: Min 8 chars, uppercase, lowercase, & number.</p>
-        </div>
-        <div class="flex gap-2">
-          <button type="button" id="btn-email-signin" class="w-1/2 bg-amber-600 hover:bg-amber-500 font-semibold py-2 rounded text-sm">Sign In</button>
-          <button type="button" id="btn-email-signup" class="w-1/2 bg-gray-700 hover:bg-gray-600 font-semibold py-2 rounded text-sm">Sign Up</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- Username Onboarding Modal -->
-    <div id="onboarding-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4">
-      <div class="bg-gray-800 p-6 rounded-xl max-w-sm w-full space-y-4 border border-amber-500/30">
-        <h3 class="text-xl font-bold text-amber-400">Choose your Username</h3>
-        <p class="text-sm text-gray-300">Set a unique username to personalize your recipe vault.</p>
-        <input type="text" id="input-username" placeholder="e.g. chef_alex" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm">
-        <button id="btn-save-username" class="w-full bg-amber-600 hover:bg-amber-500 font-semibold py-2 rounded text-sm">Save & Continue</button>
-      </div>
-    </div>
-
-    <!-- App Dashboard (When signed in) -->
-    <section id="dashboard-section" class="hidden space-y-8">
-      
-      <!-- New Recipe & Upload Form -->
-      <div class="bg-gray-800 p-6 rounded-xl">
-        <h3 class="text-lg font-bold text-amber-400 mb-4">Add Private Recipe</h3>
-        <form id="recipe-form" class="space-y-4">
-          <div>
-            <input type="text" id="recipe-title" placeholder="Recipe Title" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm">
-          </div>
-          <div>
-            <textarea id="recipe-instructions" placeholder="Ingredients and Cooking Instructions..." rows="4" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm"></textarea>
-          </div>
-          <div>
-            <label class="block text-sm text-gray-300 mb-1">Upload Recipe Photo / PDF (Max 5MB)</label>
-            <input type="file" id="recipe-file" accept="image/jpeg,image/png,image/webp,application/pdf" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-gray-200 hover:file:bg-gray-600">
-          </div>
-          <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-6 py-2 rounded text-sm">Save Recipe</button>
-        </form>
-      </div>
-
-      <!-- Recipes List -->
-      <div>
-        <h3 class="text-lg font-bold text-amber-400 mb-4">My Private Recipes</h3>
-        <div id="recipes-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Dynamically populated recipes appear here -->
+      <!-- Email Auth Inputs -->
+      <div class="space-y-3">
+        <input id="auth-email" type="email" placeholder="Email address" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
+        <input id="auth-password" type="password" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
+        
+        <div class="flex space-x-2 pt-2">
+          <button id="btn-email-signin" class="w-1/2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold py-2 rounded-lg text-sm transition">Sign In</button>
+          <button id="btn-email-signup" class="w-1/2 bg-gray-700 hover:bg-gray-600 font-semibold py-2 rounded-lg text-sm transition">Sign Up</button>
         </div>
       </div>
     </section>
 
-    <!-- Change Password Modal -->
-    <div id="password-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4">
-      <div class="bg-gray-800 p-6 rounded-xl max-w-sm w-full space-y-4">
-        <h3 class="text-xl font-bold text-amber-400">Change Password</h3>
-        <input type="password" id="new-password" placeholder="New Password" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm">
-        <div class="flex gap-2">
-          <button id="btn-update-pw" class="w-1/2 bg-amber-600 hover:bg-amber-500 font-semibold py-2 rounded text-sm">Update</button>
-          <button id="btn-close-pw-modal" class="w-1/2 bg-gray-700 hover:bg-gray-600 font-semibold py-2 rounded text-sm">Cancel</button>
-        </div>
+    <!-- Public Recipe Feed Section (Visible to EVERYONE) -->
+    <section id="public-recipes-section" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-amber-400">Public Recipes</h2>
+        <span class="text-xs text-gray-400">Open access for all visitors</span>
       </div>
-    </div>
+
+      <div id="recipes-container" class="space-y-4">
+        <p class="text-gray-400 text-sm">Loading public recipes...</p>
+      </div>
+    </section>
 
   </main>
 
-  <!-- 1. Load Supabase CDN Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- 2. Load Your Supabase Credentials -->
-  <script src="config.js"></script>
-
-  <!-- 3. Load Your Application Logic -->
-  <script src="app.js"></script>
-
+  <!-- JS Scripts with cache busting query string -->
+  <script src="config.js?v=1.2"></script>
+  <script src="app.js?v=1.2"></script>
 </body>
 </html>
