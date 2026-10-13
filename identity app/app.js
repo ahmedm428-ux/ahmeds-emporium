@@ -7,7 +7,6 @@ let allRecipes = [];
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   checkInitialSession();
-  fetchPublicRecipes();
 });
 
 // Check session on load & listen for auth state changes
@@ -32,22 +31,25 @@ async function checkInitialSession() {
 function handleUserSignedIn(user) {
   currentUser = user;
   document.getElementById("auth-section").classList.add("hidden");
-  document.getElementById("add-recipe-section").classList.remove("hidden");
+  document.getElementById("vault-content").classList.remove("hidden");
   document.getElementById("nav-user-area").classList.remove("hidden");
   
   // Display username or email
   const displayName = user.user_metadata?.preferred_username || user.user_metadata?.user_name || user.email;
   document.getElementById("user-display").textContent = displayName;
+
+  // Load recipes only after signing in
+  fetchVaultRecipes();
 }
 
 function showAuthSection() {
   document.getElementById("nav-user-area").classList.add("hidden");
-  document.getElementById("add-recipe-section").classList.add("hidden");
+  document.getElementById("vault-content").classList.add("hidden");
   document.getElementById("auth-section").classList.remove("hidden");
 }
 
-// Fetch only user-added recipes from Supabase
-async function fetchPublicRecipes() {
+// Fetch recipes from Supabase (Only for authenticated members)
+async function fetchVaultRecipes() {
   const container = document.getElementById("recipes-container");
   
   const { data: recipes, error } = await supabaseClient
@@ -66,19 +68,24 @@ async function fetchPublicRecipes() {
   if (allRecipes.length === 0) {
     container.innerHTML = `
       <div class="col-span-full text-center py-8 bg-gray-900/50 border border-dashed border-gray-700 rounded-lg">
-        <p class="text-gray-400 text-sm">No user recipes added yet.</p>
-        <p class="text-xs text-amber-400/80 mt-1">Sign in above to publish the very first recipe!</p>
+        <p class="text-gray-400 text-sm">No recipes added yet.</p>
+        <p class="text-xs text-amber-400/80 mt-1">Fill out the form above to post your first recipe!</p>
       </div>
     `;
     return;
   }
 
-  // Display retrieved public recipes as clickable cards
+  // Display retrieved recipes as cards with images
   container.innerHTML = allRecipes.map((recipe, index) => `
-    <div onclick="openRecipeModal(${index})" class="bg-gray-900 border border-gray-700 hover:border-amber-400 rounded-lg p-4 cursor-pointer transition shadow hover:shadow-amber-400/10">
-      <h3 class="font-bold text-amber-300 text-lg">${escapeHtml(recipe.title || 'Untitled Recipe')}</h3>
-      <p class="text-xs text-gray-400 mt-1 line-clamp-2">${escapeHtml(recipe.instructions || recipe.description || 'No instructions provided.')}</p>
-      <span class="inline-block mt-3 text-xs text-amber-400 font-medium">Click to view recipe &rarr;</span>
+    <div onclick="openRecipeModal(${index})" class="bg-gray-900 border border-gray-700 hover:border-amber-400 rounded-lg overflow-hidden cursor-pointer transition shadow hover:shadow-amber-400/10 flex flex-col">
+      ${recipe.image_url ? `<img src="${escapeHtml(recipe.image_url)}" alt="${escapeHtml(recipe.title)}" class="w-full h-36 object-cover" />` : ''}
+      <div class="p-4 flex-1 flex flex-col justify-between">
+        <div>
+          <h3 class="font-bold text-amber-300 text-lg">${escapeHtml(recipe.title || 'Untitled Recipe')}</h3>
+          <p class="text-xs text-gray-400 mt-1 line-clamp-2">${escapeHtml(recipe.instructions || recipe.description || 'No instructions provided.')}</p>
+        </div>
+        <span class="inline-block mt-3 text-xs text-amber-400 font-medium">Click to view recipe &rarr;</span>
+      </div>
     </div>
   `).join('');
 }
@@ -90,6 +97,16 @@ function openRecipeModal(index) {
 
   document.getElementById("modal-title").textContent = recipe.title || 'Untitled Recipe';
   
+  const modalImgContainer = document.getElementById("modal-image-container");
+  const modalImg = document.getElementById("modal-image");
+
+  if (recipe.image_url) {
+    modalImg.src = recipe.image_url;
+    modalImgContainer.classList.remove("hidden");
+  } else {
+    modalImgContainer.classList.add("hidden");
+  }
+
   const ingredientsElem = document.getElementById("modal-ingredients");
   const ingredientsContainer = document.getElementById("modal-ingredients-container");
 
@@ -109,6 +126,27 @@ function closeRecipeModal() {
   document.getElementById("recipe-modal").classList.add("hidden");
 }
 
+// Upload image to Supabase storage bucket
+async function uploadRecipeImage(file) {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+  const filePath = `recipes/${fileName}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from('recipe-images')
+    .upload(filePath, file);
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = supabaseClient.storage
+    .from('recipe-images')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
+
 // Add new recipe to Supabase
 async function handleAddRecipe(e) {
   e.preventDefault();
@@ -118,26 +156,45 @@ async function handleAddRecipe(e) {
     return;
   }
 
-  const title = document.getElementById("recipe-title").value.trim();
-  const ingredients = document.getElementById("recipe-ingredients").value.trim();
-  const instructions = document.getElementById("recipe-instructions").value.trim();
+  const submitBtn = document.getElementById("btn-submit-recipe");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Uploading...";
 
-  const { error } = await supabaseClient
-    .from('recipes')
-    .insert([
-      {
-        title: title,
-        ingredients: ingredients,
-        instructions: instructions,
-        user_id: currentUser.id
-      }
-    ]);
+  try {
+    const title = document.getElementById("recipe-title").value.trim();
+    const ingredients = document.getElementById("recipe-ingredients").value.trim();
+    const instructions = document.getElementById("recipe-instructions").value.trim();
+    const fileInput = document.getElementById("recipe-file");
+    
+    let imageUrl = null;
 
-  if (error) {
-    alert("Error saving recipe: " + error.message);
-  } else {
-    document.getElementById("recipe-form").reset();
-    fetchPublicRecipes(); // Reload list to show the new recipe immediately
+    if (fileInput.files && fileInput.files[0]) {
+      imageUrl = await uploadRecipeImage(fileInput.files[0]);
+    }
+
+    const { error } = await supabaseClient
+      .from('recipes')
+      .insert([
+        {
+          title: title,
+          ingredients: ingredients,
+          instructions: instructions,
+          image_url: imageUrl,
+          user_id: currentUser.id
+        }
+      ]);
+
+    if (error) {
+      alert("Error saving recipe: " + error.message);
+    } else {
+      document.getElementById("recipe-form").reset();
+      fetchVaultRecipes();
+    }
+  } catch (err) {
+    alert("Failed to post recipe: " + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Publish Recipe";
   }
 }
 
