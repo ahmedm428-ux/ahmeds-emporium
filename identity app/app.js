@@ -2,6 +2,7 @@
 
 let currentUser = null;
 let currentProfile = null;
+let allRecipes = [];
 
 const BUCKET_NAME = 'user-files';
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -9,8 +10,7 @@ const ALLOWED_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'video/mp4', 'video/webm', 'video/quicktime',
   'audio/mpeg', 'audio/wav', 'audio/ogg',
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  'application/pdf'
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -38,11 +38,10 @@ async function checkInitialSession() {
   });
 }
 
-// Handle profile check upon authentication
+// Check profile row after Email or GitHub login
 async function handleUserSignedIn(user) {
   currentUser = user;
 
-  // Check if profile exists
   const { data: profile, error } = await supabaseClient
     .from('profiles')
     .select('*')
@@ -54,7 +53,7 @@ async function handleUserSignedIn(user) {
   }
 
   if (!profile) {
-    // First time sign-in: show username creation form
+    // Show username setup form right after sign up or first login
     showUsernameSetup();
   } else {
     currentProfile = profile;
@@ -83,7 +82,7 @@ function showVaultContent() {
 
   document.getElementById("user-display").textContent = currentProfile ? currentProfile.username : currentUser.email;
 
-  fetchVaultFiles();
+  fetchVaultRecipes();
 }
 
 // Save Username Handler
@@ -120,76 +119,58 @@ function showError(elem, text) {
   elem.classList.remove("hidden");
 }
 
-// Fetch files from Supabase Storage & display them
-async function fetchVaultFiles() {
-  const container = document.getElementById("files-container");
-  container.innerHTML = `<p class="text-gray-400 text-sm col-span-full">Loading files...</p>`;
+// Fetch recipes from Supabase Database
+async function fetchVaultRecipes() {
+  const container = document.getElementById("recipes-container");
+  container.innerHTML = `<p class="text-gray-400 text-sm col-span-full">Loading recipes...</p>`;
 
-  // List all user folders inside bucket
-  const { data: objects, error } = await supabaseClient.storage
-    .from(BUCKET_NAME)
-    .list('', { limit: 100 });
+  const { data: recipes, error } = await supabaseClient
+    .from('recipes')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   if (error) {
-    container.innerHTML = `<p class="text-red-400 text-sm col-span-full">Failed to load files: ${escapeHtml(error.message)}</p>`;
+    container.innerHTML = `<p class="text-red-400 text-sm col-span-full">Failed to load recipes: ${escapeHtml(error.message)}</p>`;
     return;
   }
 
-  let allFiles = [];
+  allRecipes = recipes || [];
 
-  // Iterate over folders to retrieve files inside each user directory
-  for (const item of objects) {
-    if (item.id === null) { // Folder
-      const { data: userFiles } = await supabaseClient.storage
-        .from(BUCKET_NAME)
-        .list(item.name);
-
-      if (userFiles) {
-        userFiles.forEach(file => {
-          allFiles.push({ ...file, folder: item.name });
-        });
-      }
-    }
-  }
-
-  if (allFiles.length === 0) {
+  if (allRecipes.length === 0) {
     container.innerHTML = `
       <div class="col-span-full text-center py-8 bg-gray-900/50 border border-dashed border-gray-700 rounded-lg">
-        <p class="text-gray-400 text-sm">No files uploaded yet.</p>
-        <p class="text-xs text-amber-400/80 mt-1">Select a file above to upload to the vault!</p>
+        <p class="text-gray-400 text-sm">No recipes added yet.</p>
+        <p class="text-xs text-amber-400/80 mt-1">Publish the first recipe using the form above!</p>
       </div>
     `;
     return;
   }
 
-  // Render cards with signed URLs
-  const cardsHtml = await Promise.all(allFiles.map(async file => {
-    const fullPath = `${file.folder}/${file.name}`;
-    
-    // Generate signed URL valid for 1 hour
-    const { data: signedData } = await supabaseClient.storage
-      .from(BUCKET_NAME)
-      .createSignedUrl(fullPath, 3600);
+  // Render cards with signed URLs for attached images
+  const cardsHtml = await Promise.all(allRecipes.map(async (recipe, index) => {
+    let fileUrl = null;
 
-    const signedUrl = signedData ? signedData.signedUrl : '#';
-    const isOwner = file.folder === currentUser.id;
-    const formattedSize = (file.metadata?.size / (1024 * 1024)).toFixed(2) + ' MB';
+    if (recipe.file_path) {
+      const { data: signedData } = await supabaseClient.storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(recipe.file_path, 3600);
+      fileUrl = signedData ? signedData.signedUrl : null;
+    }
+
+    const isOwner = recipe.user_id === currentUser.id;
 
     return `
-      <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 flex flex-col justify-between space-y-3">
+      <div onclick="openRecipeModal(${index}, '${fileUrl || ''}')" class="bg-gray-900 border border-gray-700 hover:border-amber-400 rounded-lg overflow-hidden cursor-pointer transition shadow hover:shadow-amber-400/10 flex flex-col justify-between p-4 space-y-3">
         <div>
-          <div class="flex justify-between items-start">
-            <h3 class="font-bold text-amber-300 text-sm truncate max-w-[200px]" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</h3>
-            <span class="text-xs text-gray-500">${formattedSize}</span>
-          </div>
-          <div class="mt-3">
-            ${renderMediaPreview(file.name, signedUrl)}
-          </div>
+          <h3 class="font-bold text-amber-300 text-lg">${escapeHtml(recipe.title || 'Untitled Recipe')}</h3>
+          <p class="text-xs text-gray-400 mt-1 line-clamp-2">${escapeHtml(recipe.instructions || 'No instructions provided.')}</p>
         </div>
 
+        ${fileUrl ? `<div class="mt-2">${renderMediaPreview(recipe.file_path, fileUrl)}</div>` : ''}
+
         <div class="flex justify-between items-center pt-2 border-t border-gray-800 text-xs">
-          ${renderDownloadButton(file.name, signedUrl)}
-          ${isOwner ? `<button onclick="deleteVaultFile('${fullPath}')" class="text-red-400 hover:text-red-300 font-semibold">Delete</button>` : '<span></span>'}
+          <span class="text-amber-400 font-medium">Click to view &rarr;</span>
+          ${isOwner ? `<button onclick="event.stopPropagation(); deleteRecipe(${recipe.id}, '${recipe.file_path || ''}')" class="text-red-400 hover:text-red-300 font-semibold">Delete</button>` : '<span></span>'}
         </div>
       </div>
     `;
@@ -198,131 +179,173 @@ async function fetchVaultFiles() {
   container.innerHTML = cardsHtml.join('');
 }
 
-// Media renderer helper
-function renderMediaPreview(fileName, url) {
-  const ext = fileName.split('.').pop().toLowerCase();
+// Media preview generator
+function renderMediaPreview(filePath, url) {
+  if (!filePath) return '';
+  const ext = filePath.split('.').pop().toLowerCase();
 
   if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
-    return `<img src="${url}" alt="${escapeHtml(fileName)}" class="w-full h-40 object-cover rounded-md" />`;
+    return `<img src="${url}" alt="Food image" class="w-full h-36 object-cover rounded-md" />`;
   } else if (['mp4', 'webm', 'mov'].includes(ext)) {
-    return `<video src="${url}" controls class="w-full h-40 rounded-md bg-black"></video>`;
-  } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
-    return `<audio src="${url}" controls class="w-full mt-2"></audio>`;
+    return `<video src="${url}" class="w-full h-36 rounded-md bg-black object-cover"></video>`;
   } else if (ext === 'pdf') {
-    return `<a href="${url}" target="_blank" class="inline-block px-3 py-2 bg-gray-800 hover:bg-gray-700 text-amber-400 rounded text-xs border border-gray-700">📄 Open PDF in New Tab</a>`;
-  } else if (ext === 'docx') {
-    return `<p class="text-xs text-gray-400 italic">Word document (.docx)</p>`;
+    return `<p class="text-xs text-amber-400 bg-gray-800 p-2 rounded">📄 PDF Attachment Included</p>`;
   }
-  return `<p class="text-xs text-gray-400">File format preview unavailable</p>`;
+  return '';
 }
 
-// Download button helper
-function renderDownloadButton(fileName, url) {
-  const ext = fileName.split('.').pop().toLowerCase();
-  if (ext === 'docx') {
-    return `<a href="${url}" download class="text-amber-400 hover:underline font-medium">Download DOCX</a>`;
+// Open modal to view full recipe details
+function openRecipeModal(index, fileUrl) {
+  const recipe = allRecipes[index];
+  if (!recipe) return;
+
+  document.getElementById("modal-title").textContent = recipe.title || 'Untitled Recipe';
+  
+  const imgContainer = document.getElementById("modal-image-container");
+  if (fileUrl) {
+    imgContainer.innerHTML = renderMediaPreview(recipe.file_path, fileUrl);
+    imgContainer.classList.remove("hidden");
+  } else {
+    imgContainer.classList.add("hidden");
   }
-  return `<a href="${url}" target="_blank" download class="text-amber-400 hover:underline font-medium">Download File</a>`;
+
+  const ingredientsElem = document.getElementById("modal-ingredients");
+  const ingredientsContainer = document.getElementById("modal-ingredients-container");
+
+  if (recipe.ingredients) {
+    ingredientsElem.textContent = recipe.ingredients;
+    ingredientsContainer.classList.remove("hidden");
+  } else {
+    ingredientsContainer.classList.add("hidden");
+  }
+
+  document.getElementById("modal-instructions").textContent = recipe.instructions || 'No detailed instructions provided.';
+  
+  document.getElementById("recipe-modal").classList.remove("hidden");
 }
 
-// Real Upload with Progress reporting using XMLHttpRequest
-async function handleFileUpload() {
-  const fileInput = document.getElementById("file-input");
+function closeRecipeModal() {
+  document.getElementById("recipe-modal").classList.add("hidden");
+}
+
+// Post recipe with text and optional file attachment
+async function handleRecipeSubmit(e) {
+  e.preventDefault();
+
+  const title = document.getElementById("recipe-title").value.trim();
+  const ingredients = document.getElementById("recipe-ingredients").value.trim();
+  const instructions = document.getElementById("recipe-instructions").value.trim();
+  const fileInput = document.getElementById("recipe-file");
   const statusMsg = document.getElementById("upload-status-msg");
-  const btnUpload = document.getElementById("btn-add-file");
+  const btnSubmit = document.getElementById("btn-submit-recipe");
   const progressContainer = document.getElementById("progress-container");
   const progressBar = document.getElementById("progress-bar");
   const progressText = document.getElementById("progress-text");
 
   statusMsg.classList.add("hidden");
 
-  if (!fileInput.files || fileInput.files.length === 0) {
-    showStatus(statusMsg, "Please select a file to upload.", "red");
-    return;
-  }
+  let filePath = null;
 
-  const file = fileInput.files[0];
+  // Handle file upload if attached
+  if (fileInput.files && fileInput.files.length > 0) {
+    const file = fileInput.files[0];
 
-  // Browser-side validation checks
-  if (file.size > MAX_SIZE_BYTES) {
-    showStatus(statusMsg, "File is too large! Maximum allowed size is 10 MB.", "red");
-    return;
-  }
+    if (file.size > MAX_SIZE_BYTES) {
+      showStatus(statusMsg, "File is too large! Maximum allowed size is 10 MB.", "red");
+      return;
+    }
 
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    showStatus(statusMsg, `File type (${file.type || 'unknown'}) is not supported.`, "red");
-    return;
-  }
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      showStatus(statusMsg, `File type (${file.type || 'unknown'}) is not supported.`, "red");
+      return;
+    }
 
-  // Construct path: [user id]/[timestamp]-[file name]
-  const timeStamp = Date.now();
-  const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-  const filePath = `${currentUser.id}/${timeStamp}-${cleanFileName}`;
+    const timeStamp = Date.now();
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    filePath = `${currentUser.id}/${timeStamp}-${cleanFileName}`;
 
-  btnUpload.disabled = true;
-  progressContainer.classList.remove("hidden");
-  progressBar.style.width = "0%";
-  progressText.textContent = "0%";
+    btnSubmit.disabled = true;
+    progressContainer.classList.remove("hidden");
+    progressBar.style.width = "0%";
+    progressText.textContent = "0%";
 
-  try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    const token = session?.access_token;
-    const projectUrl = config.SUPABASE_URL;
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const token = session?.access_token;
 
-    // Direct XHR upload to report real progress percentage
-    const xhr = new XMLHttpRequest();
-    const uploadUrl = `${projectUrl}/storage/v1/object/${BUCKET_NAME}/${filePath}`;
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const uploadUrl = `${config.SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${filePath}`;
 
-    xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable) {
-        const percent = Math.round((e.loaded / e.total) * 100);
-        progressBar.style.width = `${percent}%`;
-        progressText.textContent = `${percent}%`;
-      }
-    });
+        xhr.upload.addEventListener("progress", (evt) => {
+          if (evt.lengthComputable) {
+            const percent = Math.round((evt.loaded / evt.total) * 100);
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = `${percent}%`;
+          }
+        });
 
-    xhr.onload = function () {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        showStatus(statusMsg, "File uploaded successfully!", "green");
-        fileInput.value = "";
-        fetchVaultFiles();
-      } else {
-        showStatus(statusMsg, `Upload failed (${xhr.status}): ${xhr.responseText}`, "red");
-      }
-      btnUpload.disabled = false;
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Storage error (${xhr.status}): ${xhr.responseText}`));
+        };
+
+        xhr.onerror = () => reject(new Error("Network error uploading attachment."));
+
+        xhr.open("POST", uploadUrl, true);
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.setRequestHeader("x-upsert", "false");
+        xhr.send(file);
+      });
+
+    } catch (err) {
+      showStatus(statusMsg, err.message, "red");
+      btnSubmit.disabled = false;
       progressContainer.classList.add("hidden");
-    };
+      return;
+    }
+  }
 
-    xhr.onerror = function () {
-      showStatus(statusMsg, "Network error during file upload.", "red");
-      btnUpload.disabled = false;
-      progressContainer.classList.add("hidden");
-    };
+  // Save recipe to Database table
+  const { error } = await supabaseClient
+    .from('recipes')
+    .insert([{
+      title: title,
+      ingredients: ingredients,
+      instructions: instructions,
+      file_path: filePath,
+      user_id: currentUser.id
+    }]);
 
-    xhr.open("POST", uploadUrl, true);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    xhr.setRequestHeader("x-upsert", "false");
-    xhr.send(file);
+  btnSubmit.disabled = false;
+  progressContainer.classList.add("hidden");
 
-  } catch (err) {
-    showStatus(statusMsg, "Error: " + err.message, "red");
-    btnUpload.disabled = false;
-    progressContainer.classList.add("hidden");
+  if (error) {
+    showStatus(statusMsg, "Error saving recipe: " + error.message, "red");
+  } else {
+    showStatus(statusMsg, "Recipe published successfully!", "green");
+    document.getElementById("recipe-form").reset();
+    fetchVaultRecipes();
   }
 }
 
-// Delete file from Supabase Storage
-async function deleteVaultFile(fullPath) {
-  if (!confirm("Are you sure you want to delete this file?")) return;
+// Delete recipe and its file
+async function deleteRecipe(id, filePath) {
+  if (!confirm("Are you sure you want to delete this recipe?")) return;
 
-  const { error } = await supabaseClient.storage
-    .from(BUCKET_NAME)
-    .remove([fullPath]);
+  if (filePath) {
+    await supabaseClient.storage.from(BUCKET_NAME).remove([filePath]);
+  }
+
+  const { error } = await supabaseClient
+    .from('recipes')
+    .delete()
+    .eq('id', id);
 
   if (error) {
-    alert("Delete Error: " + error.message);
+    alert("Delete error: " + error.message);
   } else {
-    fetchVaultFiles();
+    fetchVaultRecipes();
   }
 }
 
@@ -366,7 +389,7 @@ async function signUpWithEmail(email, password) {
   }
   const { error } = await supabaseClient.auth.signUp({ email, password });
   if (error) alert("Sign Up Error: " + error.message);
-  else alert("Account created successfully!");
+  else alert("Account created successfully! Check your email or sign in.");
 }
 
 async function signInWithEmail(email, password) {
@@ -392,7 +415,9 @@ function setupEventListeners() {
   const btnGithub = document.getElementById("btn-github-auth");
   const btnSignout = document.getElementById("btn-signout");
   const btnSaveUsername = document.getElementById("btn-save-username");
-  const btnAddFile = document.getElementById("btn-add-file");
+  const recipeForm = document.getElementById("recipe-form");
+  const modalClose = document.getElementById("modal-close");
+  const modalOverlay = document.getElementById("recipe-modal");
 
   if (btnSignup) {
     btnSignup.addEventListener("click", () => {
@@ -422,7 +447,17 @@ function setupEventListeners() {
     btnSaveUsername.addEventListener("click", handleSaveUsername);
   }
 
-  if (btnAddFile) {
-    btnAddFile.addEventListener("click", handleFileUpload);
+  if (recipeForm) {
+    recipeForm.addEventListener("submit", handleRecipeSubmit);
+  }
+
+  if (modalClose) {
+    modalClose.addEventListener("click", closeRecipeModal);
+  }
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) closeRecipeModal();
+    });
   }
 }
