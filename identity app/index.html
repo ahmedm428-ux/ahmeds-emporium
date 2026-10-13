@@ -26,7 +26,7 @@
     <!-- Auth Section (Shown when user is signed out) -->
     <section id="auth-section" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl max-w-md mx-auto">
       <h2 class="text-xl font-semibold mb-2 text-center">Sign In to Vault</h2>
-      <p class="text-sm text-gray-400 text-center mb-6">Access your saved profile identity</p>
+      <p class="text-sm text-gray-400 text-center mb-6">Sign in to add and save your own recipes</p>
 
       <!-- GitHub Auth Button -->
       <button id="btn-github-auth" class="w-full bg-gray-700 hover:bg-gray-600 font-medium py-2.5 rounded-lg mb-4 flex items-center justify-center space-x-2 transition">
@@ -53,22 +53,62 @@
       </div>
     </section>
 
+    <!-- Add Recipe Form (Only visible when signed in) -->
+    <section id="add-recipe-section" class="hidden bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-amber-400 mb-4">Add a New Recipe</h2>
+      <form id="recipe-form" class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Recipe Title</label>
+          <input id="recipe-title" type="text" required placeholder="e.g. Creamy Alfredo Pasta" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Ingredients</label>
+          <textarea id="recipe-ingredients" rows="2" placeholder="e.g. Pasta, Heavy Cream, Garlic, Parmesan" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Instructions / Description</label>
+          <textarea id="recipe-instructions" rows="3" required placeholder="e.g. Boil pasta, cook garlic in butter, add cream and cheese..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400"></textarea>
+        </div>
+        <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold px-5 py-2.5 rounded-lg text-sm transition">
+          Publish Recipe
+        </button>
+      </form>
+    </section>
+
     <!-- Public Recipe Feed Section (Visible to EVERYONE) -->
     <section id="public-recipes-section" class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-amber-400">Public Recipes</h2>
-        <span class="text-xs text-gray-400">Open access for all visitors</span>
+        <h2 class="text-xl font-bold text-amber-400">Community Recipes</h2>
+        <span class="text-xs text-gray-400">Click any recipe to view full details</span>
       </div>
 
-      <div id="recipes-container" class="space-y-4">
-        <p class="text-gray-400 text-sm">Loading public recipes...</p>
+      <div id="recipes-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p class="text-gray-400 text-sm col-span-full">Loading recipes...</p>
       </div>
     </section>
 
   </main>
 
-  <!-- JS Scripts with cache busting query string -->
-  <script src="config.js?v=1.2"></script>
-  <script src="app.js?v=1.2"></script>
+  <!-- Recipe Detail View Modal -->
+  <div id="recipe-modal" class="hidden fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-lg w-full space-y-4 shadow-2xl relative">
+      <button id="modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl font-bold">&times;</button>
+      <h3 id="modal-title" class="text-2xl font-bold text-amber-400 pr-6"></h3>
+      
+      <div id="modal-ingredients-container">
+        <h4 class="text-sm font-semibold text-gray-300 mb-1">Ingredients:</h4>
+        <p id="modal-ingredients" class="text-sm text-gray-200 bg-gray-900 p-3 rounded-lg whitespace-pre-wrap"></p>
+      </div>
+
+      <div>
+        <h4 class="text-sm font-semibold text-gray-300 mb-1">Instructions:</h4>
+        <p id="modal-instructions" class="text-sm text-gray-200 bg-gray-900 p-3 rounded-lg whitespace-pre-wrap"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS Scripts -->
+  <script src="config.js?v=1.3"></script>
+  <script src="app.js?v=1.3"></script>
 </body>
 </html>

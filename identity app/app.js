@@ -1,12 +1,13 @@
 // identity app/app.js
 
 let currentUser = null;
+let allRecipes = [];
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   checkInitialSession();
-  fetchPublicRecipes(); // Load public recipes immediately for everyone
+  fetchPublicRecipes();
 });
 
 // Check session on load & listen for auth state changes
@@ -31,6 +32,7 @@ async function checkInitialSession() {
 function handleUserSignedIn(user) {
   currentUser = user;
   document.getElementById("auth-section").classList.add("hidden");
+  document.getElementById("add-recipe-section").classList.remove("hidden");
   document.getElementById("nav-user-area").classList.remove("hidden");
   
   // Display username or email
@@ -40,39 +42,103 @@ function handleUserSignedIn(user) {
 
 function showAuthSection() {
   document.getElementById("nav-user-area").classList.add("hidden");
+  document.getElementById("add-recipe-section").classList.add("hidden");
   document.getElementById("auth-section").classList.remove("hidden");
 }
 
-// Fetch Public Recipes from Supabase
+// Fetch only user-added recipes from Supabase
 async function fetchPublicRecipes() {
   const container = document.getElementById("recipes-container");
   
   const { data: recipes, error } = await supabaseClient
     .from('recipes')
-    .select('*');
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  if (error || !recipes || recipes.length === 0) {
-    // Demo fallback recipes if table isn't populated yet
+  if (error) {
+    console.error("Error fetching recipes:", error.message);
+    container.innerHTML = `<p class="text-red-400 text-sm col-span-full">Failed to load recipes.</p>`;
+    return;
+  }
+
+  allRecipes = recipes || [];
+
+  if (allRecipes.length === 0) {
     container.innerHTML = `
-      <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
-        <h3 class="font-bold text-amber-300 text-lg">Classic Garlic Butter Pasta</h3>
-        <p class="text-sm text-gray-300 mt-1">Simple garlic, olive oil, parmesan, and spaghetti boiled to perfection.</p>
-      </div>
-      <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
-        <h3 class="font-bold text-amber-300 text-lg">Signature Homemade Burger</h3>
-        <p class="text-sm text-gray-300 mt-1">Juicy beef patty, toasted brioche bun, cheddar cheese, and secret sauce.</p>
+      <div class="col-span-full text-center py-8 bg-gray-900/50 border border-dashed border-gray-700 rounded-lg">
+        <p class="text-gray-400 text-sm">No user recipes added yet.</p>
+        <p class="text-xs text-amber-400/80 mt-1">Sign in above to publish the very first recipe!</p>
       </div>
     `;
     return;
   }
 
-  // Display retrieved public recipes
-  container.innerHTML = recipes.map(recipe => `
-    <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
-      <h3 class="font-bold text-amber-300 text-lg">${recipe.title || 'Untitled Recipe'}</h3>
-      <p class="text-sm text-gray-300 mt-1">${recipe.instructions || recipe.description || ''}</p>
+  // Display retrieved public recipes as clickable cards
+  container.innerHTML = allRecipes.map((recipe, index) => `
+    <div onclick="openRecipeModal(${index})" class="bg-gray-900 border border-gray-700 hover:border-amber-400 rounded-lg p-4 cursor-pointer transition shadow hover:shadow-amber-400/10">
+      <h3 class="font-bold text-amber-300 text-lg">${escapeHtml(recipe.title || 'Untitled Recipe')}</h3>
+      <p class="text-xs text-gray-400 mt-1 line-clamp-2">${escapeHtml(recipe.instructions || recipe.description || 'No instructions provided.')}</p>
+      <span class="inline-block mt-3 text-xs text-amber-400 font-medium">Click to view recipe &rarr;</span>
     </div>
   `).join('');
+}
+
+// Open modal with full recipe details
+function openRecipeModal(index) {
+  const recipe = allRecipes[index];
+  if (!recipe) return;
+
+  document.getElementById("modal-title").textContent = recipe.title || 'Untitled Recipe';
+  
+  const ingredientsElem = document.getElementById("modal-ingredients");
+  const ingredientsContainer = document.getElementById("modal-ingredients-container");
+
+  if (recipe.ingredients) {
+    ingredientsElem.textContent = recipe.ingredients;
+    ingredientsContainer.classList.remove("hidden");
+  } else {
+    ingredientsContainer.classList.add("hidden");
+  }
+
+  document.getElementById("modal-instructions").textContent = recipe.instructions || recipe.description || 'No detailed instructions provided.';
+  
+  document.getElementById("recipe-modal").classList.remove("hidden");
+}
+
+function closeRecipeModal() {
+  document.getElementById("recipe-modal").classList.add("hidden");
+}
+
+// Add new recipe to Supabase
+async function handleAddRecipe(e) {
+  e.preventDefault();
+
+  if (!currentUser) {
+    alert("You must be signed in to post a recipe.");
+    return;
+  }
+
+  const title = document.getElementById("recipe-title").value.trim();
+  const ingredients = document.getElementById("recipe-ingredients").value.trim();
+  const instructions = document.getElementById("recipe-instructions").value.trim();
+
+  const { error } = await supabaseClient
+    .from('recipes')
+    .insert([
+      {
+        title: title,
+        ingredients: ingredients,
+        instructions: instructions,
+        user_id: currentUser.id
+      }
+    ]);
+
+  if (error) {
+    alert("Error saving recipe: " + error.message);
+  } else {
+    document.getElementById("recipe-form").reset();
+    fetchPublicRecipes(); // Reload list to show the new recipe immediately
+  }
 }
 
 // Sign In Handler (GitHub OAuth - Popup Window)
@@ -122,12 +188,24 @@ async function signInWithEmail(email, password) {
   if (error) alert("Sign In Error: " + error.message);
 }
 
+// Helper to escape HTML characters
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 // Event Listeners
 function setupEventListeners() {
   const btnSignup = document.getElementById("btn-email-signup");
   const btnSignin = document.getElementById("btn-email-signin");
   const btnGithub = document.getElementById("btn-github-auth");
   const btnSignout = document.getElementById("btn-signout");
+  const recipeForm = document.getElementById("recipe-form");
+  const modalClose = document.getElementById("modal-close");
+  const modalOverlay = document.getElementById("recipe-modal");
 
   if (btnSignup) {
     btnSignup.addEventListener("click", () => {
@@ -150,6 +228,20 @@ function setupEventListeners() {
   if (btnSignout) {
     btnSignout.addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
+    });
+  }
+
+  if (recipeForm) {
+    recipeForm.addEventListener("submit", handleAddRecipe);
+  }
+
+  if (modalClose) {
+    modalClose.addEventListener("click", closeRecipeModal);
+  }
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) closeRecipeModal();
     });
   }
 }
