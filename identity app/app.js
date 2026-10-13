@@ -230,6 +230,7 @@ function closeRecipeModal() {
 
 // Post recipe with text and optional file attachment
 // Post recipe with text and optional file attachment
+// Post recipe with text and optional file attachment
 async function handleRecipeSubmit(e) {
   e.preventDefault();
 
@@ -274,7 +275,6 @@ async function handleRecipeSubmit(e) {
       const { data: { session } } = await supabaseClient.auth.getSession();
       const token = session?.access_token;
       
-      // Pull project URL directly from active Supabase client
       const projectUrl = supabaseClient.supabaseUrl;
 
       await new Promise((resolve, reject) => {
