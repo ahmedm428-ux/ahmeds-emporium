@@ -275,7 +275,7 @@ async function handleRecipeSubmit(e) {
 
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        const uploadUrl = `${config.SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${filePath}`;
+        const uploadUrl = `${supabaseClient.supabaseUrl}/storage/v1/object/${BUCKET_NAME}/${filePath}`;
 
         xhr.upload.addEventListener("progress", (evt) => {
           if (evt.lengthComputable) {
