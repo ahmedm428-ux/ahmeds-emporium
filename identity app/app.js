@@ -1,5 +1,7 @@
 // identity app/app.js - Build 2 Base Implementation
 
+let isAdmin = false;
+let isMod = false;
 let currentUser = null;
 let currentProfile = null;
 
@@ -41,13 +43,11 @@ async function checkInitialSession() {
 async function handleUserSignedIn(user) {
   currentUser = user;
 
-  const { data: profile, error } = await supabaseClient
+  const { data: profile } = await supabaseClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .maybeSingle();
-
-  if (error) console.error("Profile fetch error:", error.message);
 
   if (!profile) {
     showUsernameSetup();
@@ -55,6 +55,16 @@ async function handleUserSignedIn(user) {
   }
 
   currentProfile = profile;
+
+  // Check role tables
+  const [{ data: adminData }, { data: modData }] = await Promise.all([
+    supabaseClient.from('admins').select('*').eq('user_id', user.id).maybeSingle(),
+    supabaseClient.from('moderators').select('*').eq('user_id', user.id).maybeSingle()
+  ]);
+
+  isAdmin = !!adminData;
+  isMod = !!modData || isAdmin;
+
   showVaultContent();
 }
 
@@ -78,6 +88,16 @@ function showVaultContent() {
   document.getElementById("nav-user-area").classList.remove("hidden");
 
   document.getElementById("user-display").textContent = currentProfile.username;
+
+  // Toggle Staff Dashboard visibility based on roles
+  if (isMod) {
+    document.getElementById("admin-panel")?.classList.remove("hidden");
+    if (isAdmin) {
+      document.getElementById("admin-only-controls")?.classList.remove("hidden");
+    }
+  } else {
+    document.getElementById("admin-panel")?.classList.add("hidden");
+  }
 
   fetchVaultRecipes();
 }
@@ -330,7 +350,7 @@ function showError(elem, text) {
 function escapeHtml(str) {
   return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-
++
 function setupEventListeners() {
   document.getElementById("btn-email-signup")?.addEventListener("click", () => {
     signUpWithEmail(document.getElementById("auth-email").value, document.getElementById("auth-password").value);
@@ -349,4 +369,12 @@ function setupEventListeners() {
   document.getElementById("btn-save-username")?.addEventListener("click", handleSaveUsername);
 
   document.getElementById("recipe-form")?.addEventListener("submit", handleRecipeSubmit);
+  document.getElementById("btn-add-mod")?.addEventListener("click", async () => {
+    const modId = document.getElementById("mod-user-id").value.trim();
+    if (!modId) return alert("Enter a User ID.");
+    
+    const { error } = await supabaseClient.from('moderators').insert([{ user_id: modId }]);
+    if (error) alert("Error adding moderator: " + error.message);
+    else alert("Moderator added successfully!");
+  });
 }
