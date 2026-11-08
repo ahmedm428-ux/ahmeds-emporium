@@ -104,27 +104,28 @@ async function signInWithEmail(email, password) {
 }
 
 async function signInWithGitHub() {
-  // Check if we are stuck inside an iframe
+  const targetUrl = 'https://ahmedm428-ux.github.io/ahmeds-emporium/identity%20app/';
+
+  // If inside an iframe, break out to top window so GitHub doesn't block it
   if (window.top !== window.self) {
-    // Break out of iframe and launch OAuth at top-level window
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: 'https://ahmedm428-ux.github.io/ahmeds-emporium/',
-        skipBrowserRedirect: true // Get the URL first
+        redirectTo: targetUrl,
+        skipBrowserRedirect: true
       }
     });
     if (data?.url) {
-      window.top.location.href = data.url; // Redirect parent page
+      window.top.location.href = data.url;
     }
     return;
   }
 
-  // Normal redirect if already on main top page
+  // Normal top-level redirect
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'github',
     options: {
-      redirectTo: 'https://ahmedm428-ux.github.io/ahmeds-emporium/'
+      redirectTo: targetUrl
     }
   });
   if (error) alert("GitHub auth error: " + error.message);
