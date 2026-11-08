@@ -110,7 +110,12 @@ async function signInWithEmail(email, password) {
 }
 
 async function signInWithGitHub() {
-  const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'github' });
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: 'https://ahmedm428-ux.github.io/ahmeds-emporium/identity%20app/'
+    }
+  });
   if (error) alert("GitHub auth error: " + error.message);
 }
 
