@@ -1,124 +1,96 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Identity & Recipe Vault</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recipe Vault</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center justify-start p-6 transition-colors">
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
 
-  <!-- Header Navigation -->
-  <header class="w-full max-w-4xl flex justify-between items-center pb-6 mb-6 border-b border-gray-300 dark:border-gray-800">
-    <div class="flex items-center space-x-3">
-      <h1 class="text-2xl font-bold text-amber-500 dark:text-amber-400">Recipe Vault</h1>
+  <!-- Navigation Bar -->
+  <nav class="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold text-amber-500">🍳 Recipe Vault</h1>
+    <div id="nav-user-area" class="hidden flex items-center space-x-4">
+      <span id="user-display" class="text-sm font-medium text-gray-300"></span>
+      <button id="btn-signout" type="button" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded transition">Sign Out</button>
     </div>
-    
-    <div id="nav-user-area" class="hidden flex items-center space-x-3 text-xs">
-      <span>Logged in as: <strong id="user-display" class="text-amber-500 dark:text-amber-300"></strong></span>
-      <button id="btn-signout" class="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white font-semibold rounded transition">Sign Out</button>
-    </div>
-  </header>
+  </nav>
 
-  <main class="w-full max-w-4xl space-y-8">
-    
+  <main class="max-w-4xl mx-auto p-6 space-y-8">
+
     <!-- Auth Section -->
-    <section id="auth-section" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-xl max-w-md mx-auto">
-      <h2 class="text-xl font-semibold mb-2 text-center">Sign In to Access Vault</h2>
-      <button id="btn-github-auth" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2.5 rounded-lg mb-4 flex items-center justify-center space-x-2 transition">
-        <span>Sign in with GitHub</span>
+    <section id="auth-section" class="max-w-md mx-auto bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+      <h2 class="text-lg font-bold text-center">Sign In to Access Vault</h2>
+      
+      <button id="btn-github-auth" type="button" class="w-full bg-gray-800 hover:bg-gray-700 py-2 rounded font-medium text-sm transition">
+        Sign in with GitHub
       </button>
 
+      <div class="relative flex py-2 items-center">
+        <div class="flex-grow border-t border-gray-800"></div>
+        <span class="flex-shrink mx-4 text-xs text-gray-500">or use email</span>
+        <div class="flex-grow border-t border-gray-800"></div>
+      </div>
+
       <div class="space-y-3">
-        <input id="auth-email" type="email" placeholder="Email address" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
-        <input id="auth-password" type="password" placeholder="Password" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
+        <input id="auth-email" type="email" placeholder="Email" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
+        <input id="auth-password" type="password" placeholder="Password" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
+        
         <div class="flex space-x-2 pt-2">
-          <button id="btn-email-signin" class="w-1/2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-semibold py-2 rounded-lg text-sm">Sign In</button>
-          <button id="btn-email-signup" class="w-1/2 bg-gray-300 dark:bg-gray-700 font-semibold py-2 rounded-lg text-sm">Sign Up</button>
+          <button id="btn-email-signin" type="button" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold py-2 rounded text-sm transition">Sign In</button>
+          <button id="btn-email-signup" type="button" class="w-1/2 bg-gray-800 hover:bg-gray-700 font-medium py-2 rounded text-sm transition">Sign Up</button>
         </div>
       </div>
     </section>
 
-    <!-- Username Setup -->
-    <section id="username-setup-section" class="hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-xl max-w-md mx-auto space-y-4">
-      <h2 class="text-xl font-bold text-amber-400 text-center">Choose Your Username</h2>
-      <div id="username-error" class="hidden text-xs text-red-400 bg-red-900/40 p-2 rounded"></div>
-      <input id="input-username" type="text" placeholder="Username (3-20 chars)" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
-      <button id="btn-save-username" class="w-full bg-amber-500 text-gray-900 font-bold py-2 rounded-lg text-sm">Save Username</button>
+    <!-- Username Setup Section -->
+    <section id="username-setup-section" class="hidden max-w-md mx-auto bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+      <h2 class="text-lg font-bold text-center">Set Your Username</h2>
+      <p class="text-xs text-gray-400 text-center">Choose a display name for your recipe vault profile.</p>
+      <input id="username-input" type="text" placeholder="Username" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
+      <button id="btn-save-username" type="button" class="w-full bg-amber-500 text-gray-950 font-bold py-2 rounded text-sm hover:bg-amber-600 transition">Save Profile</button>
     </section>
 
     <!-- Vault Main Content -->
     <div id="vault-content" class="hidden space-y-8">
-      <!-- Admin / Mod Panel -->
-    <section id="admin-panel" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-4">
-      <h3 class="text-md font-bold text-amber-500">🛡️ Staff Dashboard</h3>
-      
-      <!-- Admin Only Controls -->
-      <div id="admin-only-controls" class="hidden space-y-2 pt-2 border-t border-amber-500/20">
-        <p class="text-xs font-semibold text-gray-300">Promote Moderator (Admin Only):</p>
-        <div class="flex space-x-2">
-          <input id="mod-user-id" type="text" placeholder="Target User ID (UUID)" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs w-2/3" />
-          <button id="btn-add-mod" class="bg-amber-500 text-gray-900 font-bold px-3 py-1 text-xs rounded">Add Mod</button>
+
+      <!-- Staff Dashboard Section -->
+      <section id="admin-panel" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-4">
+        <h3 class="text-md font-bold text-amber-500">🛡️ Staff Dashboard</h3>
+        
+        <!-- Admin Only Controls -->
+        <div id="admin-only-controls" class="hidden space-y-2 pt-2 border-t border-amber-500/20">
+          <p class="text-xs font-semibold text-gray-300">Promote Moderator (Admin Only):</p>
+          <div class="flex space-x-2">
+            <input id="mod-user-id" type="text" placeholder="Target User ID (UUID)" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs w-2/3 focus:outline-none focus:border-amber-500" />
+            <button id="btn-add-mod" type="button" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-3 py-1 text-xs rounded transition">Add Mod</button>
+          </div>
         </div>
-      </div>
-    </section>
-      
-      <!-- Post Recipe Form -->
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
-        <h2 class="text-xl font-bold text-amber-500 dark:text-amber-400">Post a Recipe</h2>
-        <div id="upload-status-msg" class="hidden text-xs p-2.5 rounded-lg border"></div>
+      </section>
 
-        <form id="recipe-form" class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-gray-400 mb-1">Title *</label>
-            <input id="recipe-title" type="text" required placeholder="e.g. Chicken Alfredo" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-gray-400 mb-1">Ingredients</label>
-            <textarea id="recipe-ingredients" rows="2" placeholder="List ingredients..." class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-gray-400 mb-1">Instructions / Description *</label>
-            <textarea id="recipe-instructions" rows="3" required placeholder="Cooking steps..." class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-gray-400 mb-1">Food Image / Attachment (Optional, Max 10 MB)</label>
-            <input id="recipe-file" type="file" accept="image/*,video/*,audio/*,application/pdf" class="w-full text-xs text-gray-400" />
-          </div>
-
-          <!-- Progress bar -->
-          <div id="progress-container" class="hidden space-y-1">
-            <div class="flex justify-between text-xs text-gray-300">
-              <span>Uploading attachment...</span>
-              <span id="progress-text">0%</span>
-            </div>
-            <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden border border-gray-700">
-              <div id="progress-bar" class="bg-amber-400 h-full w-0 transition-all duration-150"></div>
-            </div>
-          </div>
-
-          <button id="btn-submit-recipe" type="submit" class="bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold px-5 py-2.5 rounded-lg text-sm">Publish Recipe</button>
+      <!-- Add Recipe Form -->
+      <section class="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+        <h2 class="text-lg font-bold text-amber-500">Add New Recipe</h2>
+        <form id="recipe-form" class="space-y-3">
+          <input id="recipe-title" type="text" placeholder="Recipe Title" required class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
+          <textarea id="recipe-ingredients" placeholder="Ingredients (one per line)" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
+          <textarea id="recipe-instructions" placeholder="Instructions" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
+          <button type="submit" class="bg-amber-500 text-gray-950 font-bold px-4 py-2 rounded text-sm hover:bg-amber-600 transition">Save Recipe</button>
         </form>
       </section>
 
       <!-- Recipe Feed -->
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-xl space-y-4">
-        <h2 class="text-xl font-bold text-amber-500 dark:text-amber-400">Vault Recipes</h2>
-        <div id="recipes-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">Loading recipes...</div>
+      <section class="space-y-4">
+        <h2 class="text-lg font-bold">Community Recipes</h2>
+        <div id="recipe-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
       </section>
 
     </div>
 
   </main>
 
-  <script src="config.js?v=2.0"></script>
-  <script src="app.js?v=2.0"></script>
+  <script src="app.js"></script>
 </body>
 </html>
