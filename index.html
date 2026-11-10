@@ -673,10 +673,18 @@
         window.addEventListener('resize', initFog);
 
         window.onload = function() {
-            initFog();
-            animateFog();
-            initApp();
+    initFog();
+    animateFog();
+    initApp();
+
+    // Pass GitHub auth token into iframe if returning from OAuth
+    if (window.location.hash.includes('access_token')) {
+        const appIframe = document.getElementById('app-frame');
+        if (appIframe) {
+            appIframe.src = 'identity%20app/index.html' + window.location.hash;
         }
+    }
+}
     </script>
 </body>
 </html>

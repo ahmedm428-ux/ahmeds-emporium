@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Recipe Vault</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
 
@@ -97,19 +96,10 @@
     </div>
 
   </main>
-  <!-- Main Dashboard Content & App Iframe -->
-    <iframe id="app-frame" src="identity app/index.html" class="w-full h-screen border-none"></iframe>
 
-    <!-- Script to forward OAuth token into iframe -->
-    <script>
-      // Check if GitHub returned an access token to the main URL
-      if (window.location.hash.includes('access_token')) {
-        const appIframe = document.querySelector('iframe');
-        if (appIframe) {
-          // Pass the auth hash directly to the inner iframe
-          appIframe.src = 'identity app/index.html' + window.location.hash;
-        }
-      }
-    </script>
-  </body>
+  <!-- Script Loading Order -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>

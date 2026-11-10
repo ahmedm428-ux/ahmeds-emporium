@@ -104,7 +104,7 @@ async function signInWithEmail(email, password) {
 }
 
 async function signInWithGitHub() {
-  const targetUrl = 'https://ahmedm428-ux.github.io/ahmeds-emporium/identity%20app/';
+  const targetUrl = 'https://ahmedm428-ux.github.io/ahmeds-emporium/';
 
   // If inside an iframe, break out to top window so GitHub doesn't block it
   if (window.top !== window.self) {
