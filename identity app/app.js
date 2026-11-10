@@ -43,7 +43,18 @@ function setupEventListeners() {
 }
 
 // Session Checks
+// Session Checks
 async function checkInitialSession() {
+  // If hash contains access_token from GitHub redirect, let Supabase process it
+  if (window.location.hash.includes('access_token')) {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (session?.user) {
+      await handleUserSignedIn(session.user);
+      return;
+    }
+  }
+
+  // Normal session check
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session?.user) {
     await handleUserSignedIn(session.user);
