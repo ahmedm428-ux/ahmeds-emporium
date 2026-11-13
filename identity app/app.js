@@ -3,6 +3,7 @@ let isAdmin = false;
 let isMod = false;
 let currentUser = null;
 let currentProfile = null;
+let allUsersCache = [];
 
 // Initialization
 document.addEventListener("DOMContentLoaded", () => {
@@ -38,23 +39,21 @@ function setupEventListeners() {
     
     const { error } = await supabaseClient.from('moderators').insert([{ user_id: modId }]);
     if (error) alert("Error adding moderator: " + error.message);
-    else alert("Moderator added successfully!");
+    else {
+      alert("Moderator added successfully!");
+      document.getElementById("mod-user-id").value = "";
+      fetchAllUsersForStaff();
+    }
+  });
+
+  // Live User Search Input in Staff Sidebar
+  document.getElementById("user-search-input")?.addEventListener("input", (e) => {
+    renderStaffUserList(e.target.value.trim().toLowerCase());
   });
 }
 
 // Session Checks
-// Session Checks
 async function checkInitialSession() {
-  // If hash contains access_token from GitHub redirect, let Supabase process it
-  if (window.location.hash.includes('access_token')) {
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    if (session?.user) {
-      await handleUserSignedIn(session.user);
-      return;
-    }
-  }
-
-  // Normal session check
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session?.user) {
     await handleUserSignedIn(session.user);
@@ -117,7 +116,6 @@ async function signInWithEmail(email, password) {
 async function signInWithGitHub() {
   const targetUrl = 'https://ahmedm428-ux.github.io/ahmeds-emporium/identity%20app/';
 
-  // If inside an iframe, break out to top window so GitHub doesn't block it
   if (window.top !== window.self) {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'github',
@@ -132,7 +130,6 @@ async function signInWithGitHub() {
     return;
   }
 
-  // Normal top-level redirect
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'github',
     options: {
@@ -196,7 +193,8 @@ async function handleRecipeSubmit(e) {
     instructions,
     media_url: mediaUrl,
     file_type: fileType,
-    user_id: currentUser.id
+    user_id: currentUser.id,
+    is_hidden: false
   }]);
 
   if (error) {
@@ -216,12 +214,16 @@ async function fetchVaultRecipes() {
   if (error) return console.error("Error fetching recipes:", error);
 
   const container = document.getElementById("recipe-list");
-  if (!recipes || recipes.length === 0) {
+  
+  // Regular users cannot see hidden posts (unless it's their own); Staff can see all posts
+  const visibleRecipes = recipes.filter(r => !r.is_hidden || isMod || (currentUser && r.user_id === currentUser.id));
+
+  if (!visibleRecipes || visibleRecipes.length === 0) {
     container.innerHTML = `<p class="text-xs text-gray-500">No recipes found yet.</p>`;
     return;
   }
 
-  container.innerHTML = recipes.map(r => {
+  container.innerHTML = visibleRecipes.map(r => {
     let attachmentHtml = '';
     if (r.media_url) {
       if (r.file_type === 'pdf') {
@@ -231,20 +233,33 @@ async function fetchVaultRecipes() {
       }
     }
 
-    // Show delete button if current user owns the recipe OR is a moderator/admin
     const canDelete = (currentUser && r.user_id === currentUser.id) || isMod;
+    
+    // Staff Hide/Unhide Button
+    const hideBtnHtml = isMod
+      ? `<button type="button" onclick="toggleHideRecipe('${r.id}', ${!r.is_hidden})" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded transition">${r.is_hidden ? 'Unhide' : 'Hide'}</button>`
+      : '';
+
     const deleteBtnHtml = canDelete
-      ? `<button type="button" onclick="deleteRecipe('${r.id}', '${r.media_url || ''}')" class="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded transition">Delete</button>`
+      ? `<button type="button" onclick="deleteRecipe('${r.id}', '${r.media_url || ''}')" class="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded transition">Delete</button>`
+      : '';
+
+    const hiddenBadge = r.is_hidden
+      ? `<span class="inline-block bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Hidden from public</span>`
       : '';
 
     return `
-      <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl space-y-2">
+      <div class="bg-gray-900 border ${r.is_hidden ? 'border-red-500/40 opacity-75' : 'border-gray-800'} p-4 rounded-xl space-y-2">
         <div class="flex justify-between items-start gap-2">
           <div>
+            ${hiddenBadge}
             <h3 class="font-bold text-amber-500">${r.title}</h3>
             <p class="text-xs text-gray-400">By ${r.profiles?.username || 'Anonymous'}</p>
           </div>
-          ${deleteBtnHtml}
+          <div class="flex items-center space-x-1.5 shrink-0">
+            ${hideBtnHtml}
+            ${deleteBtnHtml}
+          </div>
         </div>
         <div class="text-xs text-gray-300">
           <strong>Ingredients:</strong> <pre class="font-sans whitespace-pre-wrap text-gray-400">${r.ingredients}</pre>
@@ -258,11 +273,25 @@ async function fetchVaultRecipes() {
   }).join('');
 }
 
-async function deleteRecipe(recipeId, mediaUrl) {
-  const confirmed = confirm("Are you sure you want to delete this recipe? This action cannot be undone.");
-  if (!confirmed) return;
+async function toggleHideRecipe(recipeId, hideState) {
+  const actionText = hideState ? "hide" : "unhide";
+  if (!confirm(`Are you sure you want to ${actionText} this post?`)) return;
 
-  // 1. Delete attached file from Supabase Storage if one exists
+  const { error } = await supabaseClient
+    .from('recipes')
+    .update({ is_hidden: hideState })
+    .eq('id', recipeId);
+
+  if (error) {
+    alert(`Error updating post visibility: ` + error.message);
+  } else {
+    fetchVaultRecipes();
+  }
+}
+
+async function deleteRecipe(recipeId, mediaUrl) {
+  if (!confirm("Are you sure you want to delete this recipe? This action cannot be undone.")) return;
+
   if (mediaUrl && mediaUrl.includes('/recipe-media/')) {
     const filePath = mediaUrl.split('/recipe-media/')[1];
     if (filePath) {
@@ -270,7 +299,6 @@ async function deleteRecipe(recipeId, mediaUrl) {
     }
   }
 
-  // 2. Delete recipe row from the database
   const { error } = await supabaseClient
     .from('recipes')
     .delete()
@@ -279,6 +307,214 @@ async function deleteRecipe(recipeId, mediaUrl) {
   if (error) {
     alert("Error deleting recipe: " + error.message);
   } else {
+    fetchVaultRecipes();
+  }
+}
+
+// ==========================================
+// USER INBOX / STAFF MESSAGES
+// ==========================================
+async function fetchUserMessages() {
+  const { data: messages, error } = await supabaseClient
+    .from('messages')
+    .select('*, sender:profiles!messages_sender_id_fkey(username)')
+    .eq('recipient_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  const section = document.getElementById("user-messages-section");
+  const list = document.getElementById("user-messages-list");
+
+  if (error || !messages || messages.length === 0) {
+    section.classList.add("hidden");
+    return;
+  }
+
+  section.classList.remove("hidden");
+  list.innerHTML = messages.map(m => `
+    <div class="bg-gray-900/90 border border-blue-500/30 rounded-lg p-3 flex justify-between items-start gap-3">
+      <div class="space-y-1">
+        <p class="text-xs font-semibold text-blue-400">From Staff (${m.sender?.username || 'Moderator'}):</p>
+        <p class="text-xs text-gray-200">${m.content}</p>
+      </div>
+      <button type="button" onclick="dismissMessage('${m.id}')" class="text-[11px] bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded shrink-0">Dismiss</button>
+    </div>
+  `).join('');
+}
+
+async function dismissMessage(messageId) {
+  const { error } = await supabaseClient
+    .from('messages')
+    .delete()
+    .eq('id', messageId);
+
+  if (!error) fetchUserMessages();
+}
+
+// ==========================================
+// STAFF SIDEBAR: USER DIRECTORY & ACTIONS
+// ==========================================
+async function fetchAllUsersForStaff() {
+  if (!isMod) return;
+
+  const [{ data: profiles }, { data: admins }, { data: mods }] = await Promise.all([
+    supabaseClient.from('profiles').select('*').order('username', { ascending: true }),
+    supabaseClient.from('admins').select('user_id'),
+    supabaseClient.from('moderators').select('user_id')
+  ]);
+
+  const adminSet = new Set((admins || []).map(a => a.user_id));
+  const modSet = new Set((mods || []).map(m => m.user_id));
+
+  allUsersCache = (profiles || []).map(p => ({
+    ...p,
+    isAdmin: adminSet.has(p.id),
+    isMod: modSet.has(p.id)
+  }));
+
+  const searchVal = document.getElementById("user-search-input")?.value.trim().toLowerCase() || "";
+  renderStaffUserList(searchVal);
+}
+
+function renderStaffUserList(searchQuery = "") {
+  const listContainer = document.getElementById("staff-user-list");
+  if (!listContainer) return;
+
+  const filtered = allUsersCache.filter(u =>
+    (u.username && u.username.toLowerCase().includes(searchQuery)) ||
+    u.id.toLowerCase().includes(searchQuery)
+  );
+
+  if (filtered.length === 0) {
+    listContainer.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">No matching users found.</p>`;
+    return;
+  }
+
+  listContainer.innerHTML = filtered.map(u => {
+    let roleBadge = `<span class="text-[10px] bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">Member</span>`;
+    if (u.isAdmin) roleBadge = `<span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold">Admin</span>`;
+    else if (u.isMod) roleBadge = `<span class="text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded font-bold">Mod</span>`;
+
+    const isSelf = currentUser && u.id === currentUser.id;
+
+    // Admin-only button to delete a moderator
+    const removeModBtn = (isAdmin && u.isMod && !u.isAdmin)
+      ? `<button type="button" onclick="removeModerator('${u.id}', '${u.username}')" class="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-1 rounded transition">Remove Mod</button>`
+      : '';
+
+    // Prevent deleting/messaging yourself or deleting an Admin
+    const actionButtons = (!isSelf && !u.isAdmin) ? `
+      <div class="flex flex-wrap gap-1.5 pt-2 border-t border-gray-800">
+        <button type="button" onclick="messageUser('${u.id}', '${u.username}')" class="text-[11px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-1 rounded transition">Message</button>
+        <button type="button" onclick="deleteUserFiles('${u.id}', '${u.username}')" class="text-[11px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded transition">Delete Files</button>
+        ${removeModBtn}
+        <button type="button" onclick="deleteUserAccount('${u.id}', '${u.username}')" class="text-[11px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded transition">Delete User</button>
+      </div>
+    ` : `<p class="text-[10px] text-gray-500 pt-1">${isSelf ? '(You)' : 'Protected Admin'}</p>`;
+
+    return `
+      <div class="bg-gray-950 border border-gray-800 rounded-lg p-3 space-y-1.5">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-gray-200 truncate">${u.username}</span>
+          ${roleBadge}
+        </div>
+        <p class="text-[10px] text-gray-500 font-mono truncate" title="${u.id}">${u.id}</p>
+        ${actionButtons}
+      </div>
+    `;
+  }).join('');
+}
+
+async function messageUser(targetUserId, username) {
+  const msg = prompt(`Send a behavior / moderation message to ${username}:`);
+  if (!msg || !msg.trim()) return;
+
+  const { error } = await supabaseClient.from('messages').insert([{
+    sender_id: currentUser.id,
+    recipient_id: targetUserId,
+    content: msg.trim()
+  }]);
+
+  if (error) {
+    alert("Error sending message: " + error.message);
+  } else {
+    alert(`Message sent to ${username}!`);
+  }
+}
+
+async function deleteUserFiles(targetUserId, username) {
+  if (!confirm(`Are you sure you want to delete ALL uploaded files belonging to ${username}?`)) return;
+
+  // 1. List and delete files inside user's storage folder
+  const { data: files, error: listError } = await supabaseClient.storage
+    .from('recipe-media')
+    .list(targetUserId);
+
+  if (listError) {
+    return alert("Error finding user files: " + listError.message);
+  }
+
+  if (files && files.length > 0) {
+    const filePaths = files.map(f => `${targetUserId}/${f.name}`);
+    const { error: removeError } = await supabaseClient.storage
+      .from('recipe-media')
+      .remove(filePaths);
+
+    if (removeError) {
+      return alert("Error deleting files from storage: " + removeError.message);
+    }
+  }
+
+  // 2. Clear media_url and file_type references on their recipes
+  await supabaseClient
+    .from('recipes')
+    .update({ media_url: null, file_type: null })
+    .eq('user_id', targetUserId);
+
+  alert(`All files for ${username} have been deleted.`);
+  fetchVaultRecipes();
+}
+
+async function removeModerator(targetUserId, username) {
+  if (!isAdmin) return alert("Only Admins can remove moderators.");
+  if (!confirm(`Are you sure you want to remove ${username} as a Moderator?`)) return;
+
+  const { error } = await supabaseClient
+    .from('moderators')
+    .delete()
+    .eq('user_id', targetUserId);
+
+  if (error) {
+    alert("Error removing moderator: " + error.message);
+  } else {
+    alert(`${username} is no longer a moderator.`);
+    fetchAllUsersForStaff();
+  }
+}
+
+async function deleteUserAccount(targetUserId, username) {
+  if (!confirm(`Are you sure you want to permanently delete ${username}'s account, profile, files, and all their recipes?`)) return;
+
+  // 1. Clean up storage files first
+  const { data: files } = await supabaseClient.storage.from('recipe-media').list(targetUserId);
+  if (files && files.length > 0) {
+    const filePaths = files.map(f => `${targetUserId}/${f.name}`);
+    await supabaseClient.storage.from('recipe-media').remove(filePaths);
+  }
+
+  // 2. Remove from moderators table if applicable
+  await supabaseClient.from('moderators').delete().eq('user_id', targetUserId);
+
+  // 3. Delete profile (cascades to delete their recipes & messages)
+  const { error } = await supabaseClient
+    .from('profiles')
+    .delete()
+    .eq('id', targetUserId);
+
+  if (error) {
+    alert("Error deleting user account: " + error.message);
+  } else {
+    alert(`${username}'s account and content have been deleted.`);
+    fetchAllUsersForStaff();
     fetchVaultRecipes();
   }
 }
@@ -306,16 +542,31 @@ function showVaultContent() {
 
   document.getElementById("user-display").textContent = currentProfile.username;
 
+  const mainCol = document.getElementById("main-feed-column");
+  const sidebar = document.getElementById("staff-user-sidebar");
+
   if (isMod) {
     document.getElementById("admin-panel")?.classList.remove("hidden");
+    sidebar?.classList.remove("hidden");
+    mainCol?.classList.remove("lg:col-span-3");
+    mainCol?.classList.add("lg:col-span-2");
+
+    document.getElementById("staff-role-badge").textContent = isAdmin ? "ADMIN" : "MODERATOR";
+
     if (isAdmin) {
       document.getElementById("admin-only-controls")?.classList.remove("hidden");
     } else {
       document.getElementById("admin-only-controls")?.classList.add("hidden");
     }
+
+    fetchAllUsersForStaff();
   } else {
     document.getElementById("admin-panel")?.classList.add("hidden");
+    sidebar?.classList.add("hidden");
+    mainCol?.classList.remove("lg:col-span-2");
+    mainCol?.classList.add("lg:col-span-3");
   }
 
+  fetchUserMessages();
   fetchVaultRecipes();
 }

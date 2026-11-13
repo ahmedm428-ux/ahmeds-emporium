@@ -17,7 +17,7 @@
     </div>
   </nav>
 
-  <main class="max-w-4xl mx-auto p-6 space-y-8">
+  <main class="max-w-6xl mx-auto p-6 space-y-8">
 
     <!-- Auth Section -->
     <section id="auth-section" class="max-w-md mx-auto bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
@@ -53,45 +53,77 @@
     </section>
 
     <!-- Vault Main Content -->
-    <div id="vault-content" class="hidden space-y-8">
+    <div id="vault-content" class="hidden space-y-6">
 
-      <!-- Staff Dashboard Section -->
-      <section id="admin-panel" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-4">
-        <h3 class="text-md font-bold text-amber-500">🛡️ Staff Dashboard</h3>
-        
-        <!-- Admin Only Controls -->
-        <div id="admin-only-controls" class="hidden space-y-2 pt-2 border-t border-amber-500/20">
-          <p class="text-xs font-semibold text-gray-300">Promote Moderator (Admin Only):</p>
-          <div class="flex space-x-2">
-            <input id="mod-user-id" type="text" placeholder="Target User ID (UUID)" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs w-2/3 focus:outline-none focus:border-amber-500" />
-            <button id="btn-add-mod" type="button" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-3 py-1 text-xs rounded transition">Add Mod</button>
-          </div>
+      <!-- User Inbox / Staff Notices Banner -->
+      <section id="user-messages-section" class="hidden bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 space-y-3">
+        <h3 class="text-sm font-bold text-blue-400">📩 Messages from Staff</h3>
+        <div id="user-messages-list" class="space-y-2"></div>
+      </section>
+
+      <!-- Main Grid: Feed on Left, Staff User Sidebar on Right -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+        <!-- Left / Center Column (Recipe Form & Community Feed) -->
+        <div id="main-feed-column" class="lg:col-span-3 space-y-8">
+
+          <!-- Staff Top Banner -->
+          <section id="admin-panel" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-md font-bold text-amber-500">🛡️ Staff Dashboard</h3>
+              <span id="staff-role-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400"></span>
+            </div>
+            
+            <!-- Admin Only Controls -->
+            <div id="admin-only-controls" class="hidden space-y-2 pt-2 border-t border-amber-500/20">
+              <p class="text-xs font-semibold text-gray-300">Quick Promote Moderator by UUID (Admin Only):</p>
+              <div class="flex space-x-2">
+                <input id="mod-user-id" type="text" placeholder="Target User ID (UUID)" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs w-2/3 focus:outline-none focus:border-amber-500" />
+                <button id="btn-add-mod" type="button" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-3 py-1 text-xs rounded transition">Add Mod</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Add Recipe Form -->
+          <section class="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+            <h2 class="text-lg font-bold text-amber-500">Add New Recipe</h2>
+            <form id="recipe-form" class="space-y-3">
+              <input id="recipe-title" type="text" placeholder="Recipe Title" required class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
+              <textarea id="recipe-ingredients" placeholder="Ingredients (one per line)" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
+              <textarea id="recipe-instructions" placeholder="Instructions" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
+              
+              <div>
+                <label class="block text-xs font-semibold text-gray-400 mb-1">Attachment (Image or PDF):</label>
+                <input id="recipe-file" type="file" accept="image/*,application/pdf" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-800 file:text-amber-500 hover:file:bg-gray-700" />
+              </div>
+
+              <button type="submit" class="bg-amber-500 text-gray-950 font-bold px-4 py-2 rounded text-sm hover:bg-amber-600 transition">Save Recipe</button>
+            </form>
+          </section>
+
+          <!-- Recipe Feed -->
+          <section class="space-y-4">
+            <h2 class="text-lg font-bold">Community Recipes</h2>
+            <div id="recipe-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+          </section>
+
         </div>
-      </section>
 
-      <!-- Add Recipe Form -->
-      <section class="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
-        <h2 class="text-lg font-bold text-amber-500">Add New Recipe</h2>
-        <form id="recipe-form" class="space-y-3">
-          <input id="recipe-title" type="text" placeholder="Recipe Title" required class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
-          <textarea id="recipe-ingredients" placeholder="Ingredients (one per line)" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
-          <textarea id="recipe-instructions" placeholder="Instructions" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
-          
-          <!-- File Attachment Input -->
-          <div>
-            <label class="block text-xs font-semibold text-gray-400 mb-1">Attachment (Image or PDF):</label>
-            <input id="recipe-file" type="file" accept="image/*,application/pdf" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-800 file:text-amber-500 hover:file:bg-gray-700" />
+        <!-- Right Sidebar: Staff User Management Directory -->
+        <aside id="staff-user-sidebar" class="hidden lg:col-span-1 bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-4 sticky top-6">
+          <div class="space-y-1">
+            <h3 class="text-md font-bold text-amber-500">👥 User Directory</h3>
+            <p class="text-xs text-gray-400">Search & manage community members</p>
           </div>
 
-          <button type="submit" class="bg-amber-500 text-gray-950 font-bold px-4 py-2 rounded text-sm hover:bg-amber-600 transition">Save Recipe</button>
-        </form>
-      </section>
+          <!-- Search Input -->
+          <input id="user-search-input" type="text" placeholder="Search username or ID..." class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-xs focus:outline-none focus:border-amber-500" />
 
-      <!-- Recipe Feed -->
-      <section class="space-y-4">
-        <h2 class="text-lg font-bold">Community Recipes</h2>
-        <div id="recipe-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-      </section>
+          <!-- Scrollable User List -->
+          <div id="staff-user-list" class="space-y-3 max-h-[600px] overflow-y-auto pr-1"></div>
+        </aside>
+
+      </div>
 
     </div>
 
