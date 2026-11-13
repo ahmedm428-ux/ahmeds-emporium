@@ -4,6 +4,8 @@ let isMod = false;
 let currentUser = null;
 let currentProfile = null;
 let allUsersCache = [];
+let blockedUserIds = new Set();
+let staffUserIds = new Set();
 
 // Initialization
 document.addEventListener("DOMContentLoaded", () => {
@@ -206,16 +208,30 @@ async function handleRecipeSubmit(e) {
 }
 
 async function fetchVaultRecipes() {
-  const { data: recipes, error } = await supabaseClient
-    .from('recipes')
-    .select('*, profiles(username)')
-    .order('created_at', { ascending: false });
+  // 1. Fetch recipes, current user's blocked list, and staff IDs concurrently
+  const [
+    { data: recipes, error },
+    { data: blocks },
+    { data: admins },
+    { data: mods }
+  ] = await Promise.all([
+    supabaseClient.from('recipes').select('*, profiles(username)').order('created_at', { ascending: false }),
+    currentUser ? supabaseClient.from('blocked_users').select('blocked_id').eq('blocker_id', currentUser.id) : { data: [] },
+    supabaseClient.from('admins').select('user_id'),
+    supabaseClient.from('moderators').select('user_id')
+  ]);
 
   if (error) return console.error("Error fetching recipes:", error);
 
+  blockedUserIds = new Set((blocks || []).map(b => b.blocked_id));
+  staffUserIds = new Set([
+    ...(admins || []).map(a => a.user_id),
+    ...(mods || []).map(m => m.user_id)
+  ]);
+
   const container = document.getElementById("recipe-list");
   
-  // Regular users cannot see hidden posts (unless it's their own); Staff can see all posts
+  // Regular users cannot see staff-hidden posts (unless it's their own); Staff can see all posts
   const visibleRecipes = recipes.filter(r => !r.is_hidden || isMod || (currentUser && r.user_id === currentUser.id));
 
   if (!visibleRecipes || visibleRecipes.length === 0) {
@@ -224,6 +240,10 @@ async function fetchVaultRecipes() {
   }
 
   container.innerHTML = visibleRecipes.map(r => {
+    const isAuthorSelf = currentUser && r.user_id === currentUser.id;
+    const isAuthorStaff = staffUserIds.has(r.user_id);
+    const isAuthorBlocked = blockedUserIds.has(r.user_id);
+
     let attachmentHtml = '';
     if (r.media_url) {
       if (r.file_type === 'pdf') {
@@ -233,8 +253,18 @@ async function fetchVaultRecipes() {
       }
     }
 
-    const canDelete = (currentUser && r.user_id === currentUser.id) || isMod;
-    
+    const canDelete = isAuthorSelf || isMod;
+
+    // Block / Unblock Button (Only shown for other users who are NOT Mods or Admins)
+    let blockBtnHtml = '';
+    if (currentUser && !isAuthorSelf && !isAuthorStaff) {
+      if (isAuthorBlocked) {
+        blockBtnHtml = `<button type="button" onclick="unblockUser('${r.user_id}', '${r.profiles?.username || 'this user'}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 px-2 py-1 rounded transition">Unblock</button>`;
+      } else {
+        blockBtnHtml = `<button type="button" onclick="blockUser('${r.user_id}', '${r.profiles?.username || 'this user'}')" class="text-xs bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-gray-700 px-2 py-1 rounded transition">Block</button>`;
+      }
+    }
+
     // Staff Hide/Unhide Button
     const hideBtnHtml = isMod
       ? `<button type="button" onclick="toggleHideRecipe('${r.id}', ${!r.is_hidden})" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded transition">${r.is_hidden ? 'Unhide' : 'Hide'}</button>`
@@ -248,8 +278,24 @@ async function fetchVaultRecipes() {
       ? `<span class="inline-block bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Hidden from public</span>`
       : '';
 
-    return `
-      <div class="bg-gray-900 border ${r.is_hidden ? 'border-red-500/40 opacity-75' : 'border-gray-800'} p-4 rounded-xl space-y-2">
+    // Blocked Post Placeholder Banner
+    const blockedBannerHtml = isAuthorBlocked ? `
+      <div id="blocked-placeholder-${r.id}" class="flex flex-col items-center justify-center text-center py-6 px-4 space-y-3">
+        <p class="text-xs text-gray-400">🚫 You have blocked this user's post.</p>
+        <div class="flex items-center space-x-2">
+          <button type="button" onclick="revealBlockedPost('${r.id}')" class="text-xs bg-gray-800 hover:bg-gray-700 text-amber-500 border border-gray-700 px-3 py-1.5 rounded font-medium transition">
+            Click here to see their post
+          </button>
+          <button type="button" onclick="unblockUser('${r.user_id}', '${r.profiles?.username || 'this user'}')" class="text-xs text-gray-500 hover:text-gray-300 underline px-2 py-1">
+            Unblock user
+          </button>
+        </div>
+      </div>
+    ` : '';
+
+    // Actual Recipe Content (hidden initially if author is blocked)
+    const recipeBodyHtml = `
+      <div id="recipe-body-${r.id}" class="${isAuthorBlocked ? 'hidden' : ''} space-y-2">
         <div class="flex justify-between items-start gap-2">
           <div>
             ${hiddenBadge}
@@ -257,6 +303,7 @@ async function fetchVaultRecipes() {
             <p class="text-xs text-gray-400">By ${r.profiles?.username || 'Anonymous'}</p>
           </div>
           <div class="flex items-center space-x-1.5 shrink-0">
+            ${blockBtnHtml}
             ${hideBtnHtml}
             ${deleteBtnHtml}
           </div>
@@ -270,7 +317,53 @@ async function fetchVaultRecipes() {
         ${attachmentHtml}
       </div>
     `;
+
+    return `
+      <div class="bg-gray-900 border ${r.is_hidden ? 'border-red-500/40 opacity-75' : 'border-gray-800'} p-4 rounded-xl">
+        ${blockedBannerHtml}
+        ${recipeBodyHtml}
+      </div>
+    `;
   }).join('');
+}
+
+function revealBlockedPost(recipeId) {
+  document.getElementById(`blocked-placeholder-${recipeId}`)?.classList.add("hidden");
+  document.getElementById(`recipe-body-${recipeId}`)?.classList.remove("hidden");
+}
+
+async function blockUser(targetUserId, username) {
+  if (staffUserIds.has(targetUserId)) {
+    return alert("You cannot block an Admin or Moderator.");
+  }
+
+  if (!confirm(`Are you sure you want to block ${username}? Their posts will be hidden unless you click to view them.`)) return;
+
+  const { error } = await supabaseClient
+    .from('blocked_users')
+    .insert([{ blocker_id: currentUser.id, blocked_id: targetUserId }]);
+
+  if (error) {
+    alert("Error blocking user: " + error.message);
+  } else {
+    fetchVaultRecipes();
+  }
+}
+
+async function unblockUser(targetUserId, username) {
+  if (!confirm(`Unblock ${username}?`)) return;
+
+  const { error } = await supabaseClient
+    .from('blocked_users')
+    .delete()
+    .eq('blocker_id', currentUser.id)
+    .eq('blocked_id', targetUserId);
+
+  if (error) {
+    alert("Error unblocking user: " + error.message);
+  } else {
+    fetchVaultRecipes();
+  }
 }
 
 async function toggleHideRecipe(recipeId, hideState) {
