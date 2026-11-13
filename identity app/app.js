@@ -216,6 +216,11 @@ async function fetchVaultRecipes() {
   if (error) return console.error("Error fetching recipes:", error);
 
   const container = document.getElementById("recipe-list");
+  if (!recipes || recipes.length === 0) {
+    container.innerHTML = `<p class="text-xs text-gray-500">No recipes found yet.</p>`;
+    return;
+  }
+
   container.innerHTML = recipes.map(r => {
     let attachmentHtml = '';
     if (r.media_url) {
@@ -226,10 +231,21 @@ async function fetchVaultRecipes() {
       }
     }
 
+    // Show delete button if current user owns the recipe OR is a moderator/admin
+    const canDelete = (currentUser && r.user_id === currentUser.id) || isMod;
+    const deleteBtnHtml = canDelete
+      ? `<button type="button" onclick="deleteRecipe('${r.id}', '${r.media_url || ''}')" class="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded transition">Delete</button>`
+      : '';
+
     return `
       <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl space-y-2">
-        <h3 class="font-bold text-amber-500">${r.title}</h3>
-        <p class="text-xs text-gray-400">By ${r.profiles?.username || 'Anonymous'}</p>
+        <div class="flex justify-between items-start gap-2">
+          <div>
+            <h3 class="font-bold text-amber-500">${r.title}</h3>
+            <p class="text-xs text-gray-400">By ${r.profiles?.username || 'Anonymous'}</p>
+          </div>
+          ${deleteBtnHtml}
+        </div>
         <div class="text-xs text-gray-300">
           <strong>Ingredients:</strong> <pre class="font-sans whitespace-pre-wrap text-gray-400">${r.ingredients}</pre>
         </div>
@@ -240,6 +256,31 @@ async function fetchVaultRecipes() {
       </div>
     `;
   }).join('');
+}
+
+async function deleteRecipe(recipeId, mediaUrl) {
+  const confirmed = confirm("Are you sure you want to delete this recipe? This action cannot be undone.");
+  if (!confirmed) return;
+
+  // 1. Delete attached file from Supabase Storage if one exists
+  if (mediaUrl && mediaUrl.includes('/recipe-media/')) {
+    const filePath = mediaUrl.split('/recipe-media/')[1];
+    if (filePath) {
+      await supabaseClient.storage.from('recipe-media').remove([filePath]);
+    }
+  }
+
+  // 2. Delete recipe row from the database
+  const { error } = await supabaseClient
+    .from('recipes')
+    .delete()
+    .eq('id', recipeId);
+
+  if (error) {
+    alert("Error deleting recipe: " + error.message);
+  } else {
+    fetchVaultRecipes();
+  }
 }
 
 // UI Navigation Toggles
