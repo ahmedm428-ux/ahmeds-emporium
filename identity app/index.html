@@ -6,7 +6,7 @@
   <title>Recipe Vault</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col">
 
   <!-- Navigation Bar -->
   <nav class="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 flex justify-between items-center">
@@ -17,7 +17,7 @@
     </div>
   </nav>
 
-  <main class="max-w-6xl mx-auto p-6 space-y-8">
+  <main class="max-w-6xl w-full mx-auto p-6 space-y-8 flex-grow">
 
     <!-- Auth Section -->
     <section id="auth-section" class="max-w-md mx-auto bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
@@ -42,6 +42,14 @@
           <button id="btn-email-signup" type="button" class="w-1/2 bg-gray-800 hover:bg-gray-700 font-medium py-2 rounded text-sm transition">Sign Up</button>
         </div>
       </div>
+
+      <!-- Terms & Privacy Agreement Notice -->
+      <p class="text-xs text-gray-400 text-center pt-3 border-t border-gray-800 leading-relaxed">
+        By signing up or signing in, you agree to follow our 
+        <button type="button" onclick="openLegalModal('terms')" class="text-amber-500 hover:text-amber-400 underline font-medium">Terms of Service</button> 
+        and 
+        <button type="button" onclick="openLegalModal('privacy')" class="text-amber-500 hover:text-amber-400 underline font-medium">Privacy Policy</button>.
+      </p>
     </section>
 
     <!-- Username Setup Section -->
@@ -128,6 +136,125 @@
     </div>
 
   </main>
+
+  <!-- Footer with Quick Links to Terms & Privacy -->
+  <footer class="border-t border-gray-800 bg-gray-900/30 py-4 px-6 text-center text-xs text-gray-500 space-x-4">
+    <span>Recipe Vault</span>
+    <span>•</span>
+    <button type="button" onclick="openLegalModal('terms')" class="hover:text-amber-500 underline">Terms of Service</button>
+    <span>•</span>
+    <button type="button" onclick="openLegalModal('privacy')" class="hover:text-amber-500 underline">Privacy Policy</button>
+  </footer>
+
+  <!-- Legal Popup Modal (Terms of Service & Privacy Policy) -->
+  <div id="legal-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="closeLegalModalOnBackdrop(event)">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      
+      <!-- Modal Header & Tab Switcher -->
+      <div class="p-5 border-b border-gray-800 flex justify-between items-center">
+        <div class="flex space-x-2">
+          <button id="tab-privacy" type="button" onclick="switchLegalTab('privacy')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-gray-950 transition">Privacy Policy</button>
+          <button id="tab-terms" type="button" onclick="switchLegalTab('terms')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition">Terms of Service</button>
+        </div>
+        <button type="button" onclick="closeLegalModal()" class="text-gray-400 hover:text-white text-lg font-bold px-2">&times;</button>
+      </div>
+
+      <!-- Modal Scrollable Content -->
+      <div class="p-6 overflow-y-auto space-y-6 text-xs text-gray-300 leading-relaxed">
+        
+        <!-- Privacy Policy Content (4 Sections) -->
+        <div id="content-privacy" class="space-y-5">
+          <div>
+            <h2 class="text-lg font-bold text-amber-500">Privacy Policy</h2>
+            <p class="text-gray-400 mt-1">How Recipe Vault collects, displays, protects, and manages your information.</p>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">1. What Your App Saves and Why</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li><strong class="text-gray-200">Account Credentials:</strong> Saves your login details (Email & Password or GitHub OAuth) via Supabase Authentication so you can securely log into your personal vault session.</li>
+              <li><strong class="text-gray-200">Profile Information:</strong> Stores your chosen username in the <code class="text-amber-400">profiles</code> database table so your display name appears alongside recipes you share.</li>
+              <li><strong class="text-gray-200">Recipe Data & Comments:</strong> Saves the titles, ingredient lists, instructions, and comments you submit so they persist in the community feed.</li>
+              <li><strong class="text-gray-200">Uploaded Attachments:</strong> Stores uploaded images and PDFs in Supabase Storage (<code class="text-amber-400">recipe-media</code>) to display inline photos or document previews on your posts.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">2. Who Can See Your Information</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li><strong class="text-gray-200">Public Recipe Feed:</strong> Any user accessing the vault (on desktop or mobile) can view published recipes, attached media files, and author usernames.</li>
+              <li><strong class="text-gray-200">Staff & Moderation Access:</strong> Authorized Admins and Moderators can view internal User IDs (UUIDs), roles, and account activity to maintain community safety, send direct staff messages, hide posts, or manage user access.</li>
+              <li><strong class="text-gray-200">Private Passwords:</strong> No one—including app administrators or moderators—can view your password. Credentials are encrypted and handled exclusively by Supabase Auth.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">3. How to Delete or Manage Your Information</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li><strong class="text-gray-200">Self-Service Recipe Deletion:</strong> You can permanently delete any recipe you uploaded (along with its attached file) at any time using the <strong>Delete</strong> button on your post.</li>
+              <li><strong class="text-gray-200">Moderation & Account Removal:</strong> Admins and Moderators can hide posts, delete uploaded files, or permanently delete user accounts and associated content when enforcing community guidelines. Confirmation prompts ("Are you sure?") are required before any deletion action.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">4. What Your App Never Saves</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li><strong class="text-gray-200">Financial or Payment Data:</strong> Recipe Vault never collects, processes, or stores credit card numbers, bank details, or billing addresses.</li>
+              <li><strong class="text-gray-200">Device Location Data:</strong> Recipe Vault never requests or tracks your GPS coordinates or physical location on desktop or mobile.</li>
+              <li><strong class="text-gray-200">Third-Party Ad Trackers:</strong> Recipe Vault does not use advertising cookies, cross-site trackers, or sell user information to third parties.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Terms of Service Content -->
+        <div id="content-terms" class="hidden space-y-5">
+          <div>
+            <h2 class="text-lg font-bold text-amber-500">Terms of Service</h2>
+            <p class="text-gray-400 mt-1">Rules and guidelines for using Recipe Vault.</p>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">1. Community Conduct & Content Rules</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li>Only upload recipes, images, and PDF documents that are appropriate for a general community audience.</li>
+              <li>Do not upload harmful, abusive, spam, or copyrighted material you do not have permission to share.</li>
+              <li>Be respectful to fellow community members, moderators, and administrators.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">2. Account Responsibility</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li>You are responsible for keeping your login credentials secure and for all recipes and files posted under your username.</li>
+              <li>Choose an appropriate display name when setting up your profile.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">3. Moderation & Enforcement</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li>Admins and Moderators reserve the right to send behavior notices, hide posts from public view, remove uploaded files, or delete accounts that violate these terms.</li>
+              <li>Administrators manage staff privileges and may promote or remove moderators at their discretion.</li>
+            </ul>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-gray-100">4. Service Availability</h3>
+            <ul class="list-disc pl-5 space-y-1.5 text-gray-400">
+              <li>Recipe Vault is provided "as is" as a community recipe-sharing platform. Always keep personal backups of important recipes or files.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-gray-800 flex justify-end">
+        <button type="button" onclick="closeLegalModal()" class="bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold px-4 py-1.5 rounded text-xs transition">Got It</button>
+      </div>
+
+    </div>
+  </div>
 
   <!-- Script Loading Order -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

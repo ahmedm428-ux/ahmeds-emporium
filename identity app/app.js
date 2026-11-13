@@ -570,3 +570,44 @@ function showVaultContent() {
   fetchUserMessages();
   fetchVaultRecipes();
 }
+
+// ==========================================
+// LEGAL MODAL (PRIVACY POLICY & TERMS)
+// ==========================================
+function openLegalModal(tab = 'privacy') {
+  const modal = document.getElementById("legal-modal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  switchLegalTab(tab);
+}
+
+function closeLegalModal() {
+  document.getElementById("legal-modal")?.classList.add("hidden");
+}
+
+function closeLegalModalOnBackdrop(event) {
+  if (event.target.id === "legal-modal") {
+    closeLegalModal();
+  }
+}
+
+function switchLegalTab(tab) {
+  const privacyContent = document.getElementById("content-privacy");
+  const termsContent = document.getElementById("content-terms");
+  const tabPrivacy = document.getElementById("tab-privacy");
+  const tabTerms = document.getElementById("tab-terms");
+
+  if (tab === 'terms') {
+    privacyContent?.classList.add("hidden");
+    termsContent?.classList.remove("hidden");
+
+    tabTerms.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-gray-950 transition";
+    tabPrivacy.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition";
+  } else {
+    termsContent?.classList.add("hidden");
+    privacyContent?.classList.remove("hidden");
+
+    tabPrivacy.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-gray-950 transition";
+    tabTerms.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition";
+  }
+}
