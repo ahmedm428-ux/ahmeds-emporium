@@ -2,70 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"/>
   <title>Recipe Vault</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍳</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col">
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col overflow-x-hidden selection:bg-amber-500 selection:text-gray-950">
 
   <!-- Navigation Bar -->
-  <nav class="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold text-amber-500">🍳 Recipe Vault</h1>
-    <div id="nav-user-area" class="hidden flex items-center space-x-4">
-      <span id="user-display" class="text-sm font-medium text-gray-300"></span>
-      <button id="btn-signout" type="button" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded transition">Sign Out</button>
+  <nav class="sticky top-0 z-30 border-b border-gray-800 bg-gray-900/90 backdrop-blur px-4 sm:px-6 py-3.5 flex justify-between items-center gap-3">
+    <h1 class="text-lg sm:text-xl font-bold text-amber-500 shrink-0">🍳 Recipe Vault</h1>
+    <div id="nav-user-area" class="hidden flex items-center gap-2.5 sm:gap-4 min-w-0">
+      <span id="user-display" class="text-xs sm:text-sm font-medium text-gray-300 truncate max-w-[120px] sm:max-w-[200px]"></span>
+      <button id="btn-signout" type="button" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-xs px-3 py-2 sm:py-1.5 rounded-lg transition shrink-0 font-medium">Sign Out</button>
     </div>
   </nav>
 
-  <main class="max-w-6xl w-full mx-auto p-6 space-y-8 flex-grow">
+  <main class="max-w-6xl w-full mx-auto px-4 py-5 sm:p-6 space-y-6 sm:space-y-8 flex-grow">
 
     <!-- Auth Section -->
-    <section id="auth-section" class="max-w-md mx-auto bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+    <section id="auth-section" class="max-w-md mx-auto bg-gray-900 p-5 sm:p-6 rounded-2xl border border-gray-800 space-y-4 shadow-xl">
       <h2 class="text-lg font-bold text-center">Sign In to Access Vault</h2>
       
-      <button id="btn-github-auth" type="button" class="w-full bg-gray-800 hover:bg-gray-700 py-2 rounded font-medium text-sm transition flex items-center justify-center space-x-2">
+      <button id="btn-github-auth" type="button" class="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-600 py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center space-x-2">
         <span>Sign in with GitHub</span>
       </button>
 
-      <div class="relative flex py-2 items-center">
+      <div class="relative flex py-1.5 items-center">
         <div class="flex-grow border-t border-gray-800"></div>
         <span class="flex-shrink mx-4 text-xs text-gray-500">or use email</span>
         <div class="flex-grow border-t border-gray-800"></div>
       </div>
 
       <div class="space-y-3">
-        <input id="auth-email" type="email" placeholder="Email" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
-        <input id="auth-password" type="password" placeholder="Password" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
+        <input id="auth-email" type="email" autocomplete="email" placeholder="Email" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-amber-500" />
+        <input id="auth-password" type="password" autocomplete="current-password" placeholder="Password" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-amber-500" />
         
-        <div class="flex space-x-2 pt-2">
-          <button id="btn-email-signin" type="button" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold py-2 rounded text-sm transition">Sign In</button>
-          <button id="btn-email-signup" type="button" class="w-1/2 bg-gray-800 hover:bg-gray-700 font-medium py-2 rounded text-sm transition">Sign Up</button>
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button id="btn-email-signin" type="button" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-gray-950 font-bold py-2.5 rounded-lg text-sm transition">Sign In</button>
+          <button id="btn-email-signup" type="button" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 font-medium py-2.5 rounded-lg text-sm transition">Sign Up</button>
         </div>
       </div>
 
       <!-- Terms & Privacy Agreement Notice -->
       <p class="text-xs text-gray-400 text-center pt-3 border-t border-gray-800 leading-relaxed">
         By signing up or signing in, you agree to follow our 
-        <button type="button" onclick="openLegalModal('terms')" class="text-amber-500 hover:text-amber-400 underline font-medium">Terms of Service</button> 
+        <button type="button" onclick="openLegalModal('terms')" class="text-amber-500 hover:text-amber-400 underline font-medium py-0.5">Terms of Service</button> 
         and 
-        <button type="button" onclick="openLegalModal('privacy')" class="text-amber-500 hover:text-amber-400 underline font-medium">Privacy Policy</button>.
+        <button type="button" onclick="openLegalModal('privacy')" class="text-amber-500 hover:text-amber-400 underline font-medium py-0.5">Privacy Policy</button>.
       </p>
     </section>
 
     <!-- Username Setup Section -->
-    <section id="username-setup-section" class="hidden max-w-md mx-auto bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+    <section id="username-setup-section" class="hidden max-w-md mx-auto bg-gray-900 p-5 sm:p-6 rounded-2xl border border-gray-800 space-y-4 shadow-xl">
       <h2 class="text-lg font-bold text-center">Set Your Username</h2>
       <p class="text-xs text-gray-400 text-center">Choose a display name for your recipe vault profile.</p>
-      <input id="username-input" type="text" placeholder="Username" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
-      <button id="btn-save-username" type="button" class="w-full bg-amber-500 text-gray-950 font-bold py-2 rounded text-sm hover:bg-amber-600 transition">Save Profile</button>
+      <input id="username-input" type="text" placeholder="Username" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-amber-500" />
+      <button id="btn-save-username" type="button" class="w-full bg-amber-500 text-gray-950 font-bold py-2.5 rounded-lg text-sm hover:bg-amber-600 active:bg-amber-700 transition">Save Profile</button>
     </section>
 
     <!-- Vault Main Content -->
-    <div id="vault-content" class="hidden space-y-6">
+    <div id="vault-content" class="hidden space-y-5 sm:space-y-6">
 
       <!-- User Inbox / Staff Notices Banner -->
-      <section id="user-messages-section" class="hidden bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 space-y-3">
+      <section id="user-messages-section" class="hidden bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 space-y-3">
         <h3 class="text-sm font-bold text-blue-400">📩 Messages from Staff</h3>
         <div id="user-messages-list" class="space-y-2"></div>
       </section>
@@ -74,62 +74,70 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
         <!-- Left / Center Column (Recipe Form & Community Feed) -->
-        <div id="main-feed-column" class="lg:col-span-3 space-y-8">
+        <div id="main-feed-column" class="lg:col-span-3 space-y-6 sm:space-y-8">
 
           <!-- Staff Top Banner -->
-          <section id="admin-panel" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-4">
-            <div class="flex justify-between items-center">
-              <h3 class="text-md font-bold text-amber-500">🛡️ Staff Dashboard</h3>
-              <span id="staff-role-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400"></span>
+          <section id="admin-panel" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-4">
+            <div class="flex flex-wrap justify-between items-center gap-2">
+              <h3 class="text-sm sm:text-md font-bold text-amber-500">🛡️ Staff Dashboard</h3>
+              <span id="staff-role-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400"></span>
             </div>
             
             <!-- Admin Only Controls -->
-            <div id="admin-only-controls" class="hidden space-y-2 pt-2 border-t border-amber-500/20">
+            <div id="admin-only-controls" class="hidden space-y-2 pt-3 border-t border-amber-500/20">
               <p class="text-xs font-semibold text-gray-300">Quick Promote Moderator by UUID (Admin Only):</p>
-              <div class="flex space-x-2">
-                <input id="mod-user-id" type="text" placeholder="Target User ID (UUID)" class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs w-2/3 focus:outline-none focus:border-amber-500" />
-                <button id="btn-add-mod" type="button" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold px-3 py-1 text-xs rounded transition">Add Mod</button>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input id="mod-user-id" type="text" placeholder="Target User ID (UUID)" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base sm:text-xs w-full sm:w-2/3 focus:outline-none focus:border-amber-500" />
+                <button id="btn-add-mod" type="button" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-gray-900 font-bold px-4 py-2 sm:py-1.5 text-xs rounded-lg transition shrink-0">Add Mod</button>
               </div>
             </div>
           </section>
 
           <!-- Add Recipe Form -->
-          <section class="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
-            <h2 class="text-lg font-bold text-amber-500">Add New Recipe</h2>
-            <form id="recipe-form" class="space-y-3">
-              <input id="recipe-title" type="text" placeholder="Recipe Title" required class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
-              <textarea id="recipe-ingredients" placeholder="Ingredients (one per line)" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
-              <textarea id="recipe-instructions" placeholder="Instructions" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></textarea>
+          <section class="bg-gray-900 p-4 sm:p-6 rounded-2xl border border-gray-800 space-y-4 shadow-lg">
+            <h2 class="text-base sm:text-lg font-bold text-amber-500">Add New Recipe</h2>
+            <form id="recipe-form" class="space-y-3.5">
+              <input id="recipe-title" type="text" placeholder="Recipe Title" required class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-amber-500" />
+              <textarea id="recipe-ingredients" placeholder="Ingredients (one per line)" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-amber-500"></textarea>
+              <textarea id="recipe-instructions" placeholder="Instructions" required rows="3" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-amber-500"></textarea>
               
               <div>
-                <label class="block text-xs font-semibold text-gray-400 mb-1">Attachment (Image or PDF):</label>
-                <input id="recipe-file" type="file" accept="image/*,application/pdf" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-800 file:text-amber-500 hover:file:bg-gray-700" />
+                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Attachment (Image or PDF):</label>
+                <input id="recipe-file" type="file" accept="image/*,application/pdf" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-800 file:text-amber-500 hover:file:bg-gray-700" />
               </div>
 
-              <button type="submit" class="bg-amber-500 text-gray-950 font-bold px-4 py-2 rounded text-sm hover:bg-amber-600 transition">Save Recipe</button>
+              <button type="submit" class="w-full sm:w-auto bg-amber-500 text-gray-950 font-bold px-5 py-2.5 rounded-lg text-sm hover:bg-amber-600 active:bg-amber-700 transition">Save Recipe</button>
             </form>
           </section>
 
           <!-- Recipe Feed -->
           <section class="space-y-4">
-            <h2 class="text-lg font-bold">Community Recipes</h2>
+            <h2 class="text-base sm:text-lg font-bold">Community Recipes</h2>
             <div id="recipe-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
           </section>
 
         </div>
 
         <!-- Right Sidebar: Staff User Management Directory -->
-        <aside id="staff-user-sidebar" class="hidden lg:col-span-1 bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-4 sticky top-6">
-          <div class="space-y-1">
-            <h3 class="text-md font-bold text-amber-500">👥 User Directory</h3>
-            <p class="text-xs text-gray-400">Search & manage community members</p>
+        <aside id="staff-user-sidebar" class="hidden lg:col-span-1 bg-gray-900 border border-gray-800 rounded-2xl p-4 space-y-4 lg:sticky lg:top-20 shadow-lg">
+          <div class="flex justify-between items-center">
+            <div class="space-y-0.5">
+              <h3 class="text-sm sm:text-md font-bold text-amber-500">👥 User Directory</h3>
+              <p class="text-xs text-gray-400">Search & manage members</p>
+            </div>
+            <!-- Mobile Toggle Button -->
+            <button id="btn-toggle-user-dir" type="button" onclick="toggleMobileUserDirectory()" class="lg:hidden text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1.5 rounded-lg border border-gray-700">
+              Hide
+            </button>
           </div>
 
-          <!-- Search Input -->
-          <input id="user-search-input" type="text" placeholder="Search username or ID..." class="w-full bg-gray-950 border border-gray-800 rounded px-3 py-2 text-xs focus:outline-none focus:border-amber-500" />
+          <div id="staff-user-dir-body" class="space-y-3">
+            <!-- Search Input -->
+            <input id="user-search-input" type="text" placeholder="Search username or ID..." class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-base sm:text-xs focus:outline-none focus:border-amber-500" />
 
-          <!-- Scrollable User List -->
-          <div id="staff-user-list" class="space-y-3 max-h-[600px] overflow-y-auto pr-1"></div>
+            <!-- Scrollable User List -->
+            <div id="staff-user-list" class="space-y-3 max-h-[420px] lg:max-h-[600px] overflow-y-auto pr-1"></div>
+          </div>
         </aside>
 
       </div>
@@ -139,34 +147,34 @@
   </main>
 
   <!-- Footer with Quick Links to Terms & Privacy -->
-  <footer class="border-t border-gray-800 bg-gray-900/30 py-4 px-6 text-center text-xs text-gray-500 space-x-4">
+  <footer class="border-t border-gray-800 bg-gray-900/30 py-4 px-4 sm:px-6 text-center text-xs text-gray-500 flex flex-wrap justify-center items-center gap-x-3 gap-y-1">
     <span>Recipe Vault</span>
     <span>•</span>
-    <button type="button" onclick="openLegalModal('terms')" class="hover:text-amber-500 underline">Terms of Service</button>
+    <button type="button" onclick="openLegalModal('terms')" class="hover:text-amber-500 underline py-1">Terms of Service</button>
     <span>•</span>
-    <button type="button" onclick="openLegalModal('privacy')" class="hover:text-amber-500 underline">Privacy Policy</button>
+    <button type="button" onclick="openLegalModal('privacy')" class="hover:text-amber-500 underline py-1">Privacy Policy</button>
   </footer>
 
   <!-- Legal Popup Modal (Terms of Service & Privacy Policy) -->
-  <div id="legal-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="closeLegalModalOnBackdrop(event)">
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+  <div id="legal-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeLegalModalOnBackdrop(event)">
+    <div class="bg-gray-900 border-t sm:border border-gray-800 rounded-t-2xl sm:rounded-2xl max-w-2xl w-full max-h-[90vh] sm:max-h-[85vh] flex flex-col shadow-2xl">
       
       <!-- Modal Header & Tab Switcher -->
-      <div class="p-5 border-b border-gray-800 flex justify-between items-center">
+      <div class="p-4 sm:p-5 border-b border-gray-800 flex justify-between items-center gap-2">
         <div class="flex space-x-2">
-          <button id="tab-privacy" type="button" onclick="switchLegalTab('privacy')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-gray-950 transition">Privacy Policy</button>
-          <button id="tab-terms" type="button" onclick="switchLegalTab('terms')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition">Terms of Service</button>
+          <button id="tab-privacy" type="button" onclick="switchLegalTab('privacy')" class="px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-gray-950 transition">Privacy Policy</button>
+          <button id="tab-terms" type="button" onclick="switchLegalTab('terms')" class="px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition">Terms of Service</button>
         </div>
-        <button type="button" onclick="closeLegalModal()" class="text-gray-400 hover:text-white text-lg font-bold px-2">&times;</button>
+        <button type="button" onclick="closeLegalModal()" class="text-gray-400 hover:text-white text-xl font-bold px-2.5 py-1">&times;</button>
       </div>
 
       <!-- Modal Scrollable Content -->
-      <div class="p-6 overflow-y-auto space-y-6 text-xs text-gray-300 leading-relaxed">
+      <div class="p-5 sm:p-6 overflow-y-auto space-y-6 text-xs text-gray-300 leading-relaxed">
         
         <!-- Privacy Policy Content (4 Sections) -->
         <div id="content-privacy" class="space-y-5">
           <div>
-            <h2 class="text-lg font-bold text-amber-500">Privacy Policy</h2>
+            <h2 class="text-base sm:text-lg font-bold text-amber-500">Privacy Policy</h2>
             <p class="text-gray-400 mt-1">How Recipe Vault collects, displays, protects, and manages your information.</p>
           </div>
 
@@ -210,7 +218,7 @@
         <!-- Terms of Service Content -->
         <div id="content-terms" class="hidden space-y-5">
           <div>
-            <h2 class="text-lg font-bold text-amber-500">Terms of Service</h2>
+            <h2 class="text-base sm:text-lg font-bold text-amber-500">Terms of Service</h2>
             <p class="text-gray-400 mt-1">Rules and guidelines for using Recipe Vault.</p>
           </div>
 
@@ -251,7 +259,7 @@
 
       <!-- Modal Footer -->
       <div class="p-4 border-t border-gray-800 flex justify-end">
-        <button type="button" onclick="closeLegalModal()" class="bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold px-4 py-1.5 rounded text-xs transition">Got It</button>
+        <button type="button" onclick="closeLegalModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-gray-950 font-bold px-5 py-2.5 sm:py-1.5 rounded-lg text-xs transition">Got It</button>
       </div>
 
     </div>

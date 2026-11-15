@@ -296,13 +296,13 @@ async function fetchVaultRecipes() {
     // Actual Recipe Content (hidden initially if author is blocked)
     const recipeBodyHtml = `
       <div id="recipe-body-${r.id}" class="${isAuthorBlocked ? 'hidden' : ''} space-y-2">
-        <div class="flex justify-between items-start gap-2">
-          <div>
+        <div class="flex flex-wrap justify-between items-start gap-2">
+          <div class="min-w-0 flex-1">
             ${hiddenBadge}
-            <h3 class="font-bold text-amber-500">${r.title}</h3>
-            <p class="text-xs text-gray-400">By ${r.profiles?.username || 'Anonymous'}</p>
+            <h3 class="font-bold text-amber-500 break-words">${r.title}</h3>
+            <p class="text-xs text-gray-400 truncate">By ${r.profiles?.username || 'Anonymous'}</p>
           </div>
-          <div class="flex items-center space-x-1.5 shrink-0">
+          <div class="flex flex-wrap items-center gap-1.5 shrink-0">
             ${blockBtnHtml}
             ${hideBtnHtml}
             ${deleteBtnHtml}
@@ -703,4 +703,12 @@ function switchLegalTab(tab) {
     tabPrivacy.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-gray-950 transition";
     tabTerms.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition";
   }
+}
+function toggleMobileUserDirectory() {
+  const body = document.getElementById("staff-user-dir-body");
+  const btn = document.getElementById("btn-toggle-user-dir");
+  if (!body || !btn) return;
+
+  const isHidden = body.classList.toggle("hidden");
+  btn.textContent = isHidden ? "Show" : "Hide";
 }
