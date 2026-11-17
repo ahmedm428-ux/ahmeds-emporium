@@ -12,9 +12,14 @@
   <!-- Navigation Bar -->
   <nav class="sticky top-0 z-30 border-b border-gray-800 bg-gray-900/90 backdrop-blur px-4 sm:px-6 py-3.5 flex justify-between items-center gap-3">
     <h1 class="text-lg sm:text-xl font-bold text-amber-500 shrink-0">🍳 Recipe Vault</h1>
-    <div id="nav-user-area" class="hidden flex items-center gap-2.5 sm:gap-4 min-w-0">
-      <span id="user-display" class="text-xs sm:text-sm font-medium text-gray-300 truncate max-w-[120px] sm:max-w-[200px]"></span>
-      <button id="btn-signout" type="button" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-xs px-3 py-2 sm:py-1.5 rounded-lg transition shrink-0 font-medium">Sign Out</button>
+    <div id="nav-user-area" class="hidden flex items-center gap-2 sm:gap-3 min-w-0">
+      <span id="user-display" class="text-xs sm:text-sm font-medium text-gray-300 truncate max-w-[100px] sm:max-w-[180px]"></span>
+      <button id="btn-delete-own-account" type="button" onclick="deleteOwnAccount()" class="bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 text-red-400 border border-red-500/30 text-xs px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-lg transition shrink-0 font-medium">
+        Delete Account
+      </button>
+      <button id="btn-signout" type="button" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-xs px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-lg transition shrink-0 font-medium">
+        Sign Out
+      </button>
     </div>
   </nav>
 

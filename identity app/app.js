@@ -712,3 +712,59 @@ function toggleMobileUserDirectory() {
   const isHidden = body.classList.toggle("hidden");
   btn.textContent = isHidden ? "Show" : "Hide";
 }
+// ==========================================
+// SELF-SERVICE ACCOUNT DELETION
+// ==========================================
+async function deleteOwnAccount() {
+  if (!currentUser) return;
+
+  const confirmed = confirm(
+    "Are you sure you want to permanently delete your account?\n\nAll of your recipes, uploaded files, and profile data will be erased forever. This cannot be undone."
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById("btn-delete-own-account");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Deleting...";
+  }
+
+  try {
+    // 1. Fetch all recipes belonging to this user so we can clean up their Storage files first
+    const { data: userRecipes } = await supabaseClient
+      .from('recipes')
+      .select('media_url')
+      .eq('user_id', currentUser.id);
+
+    if (userRecipes && userRecipes.length > 0) {
+      const filePaths = userRecipes
+        .map(r => r.media_url)
+        .filter(Boolean)
+        .map(url => {
+          const parts = url.split('/recipe-media/');
+          return parts.length > 1 ? decodeURIComponent(parts[1]) : null;
+        })
+        .filter(Boolean);
+
+      if (filePaths.length > 0) {
+        await supabaseClient.storage.from('recipe-media').remove(filePaths);
+      }
+    }
+
+    // 2. Call the Supabase RPC function to delete profile + auth.users record
+    const { error } = await supabaseClient.rpc('delete_own_account');
+    if (error) throw error;
+
+    // 3. Clear local session and reset UI back to the Sign-In screen
+    await supabaseClient.auth.signOut();
+    alert("Your account and all associated data have been permanently deleted.");
+    window.location.reload();
+  } catch (err) {
+    console.error("Error deleting account:", err);
+    alert("Could not delete account: " + (err.message || "Unknown error"));
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Delete Account";
+    }
+  }
+}
