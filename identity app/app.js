@@ -208,14 +208,18 @@ async function handleRecipeSubmit(e) {
 }
 
 async function fetchVaultRecipes() {
-  // 1. Fetch recipes, current user's blocked list, and staff IDs concurrently
+  // 1. Fetch recipes, ratings, comments, blocked list, and staff IDs concurrently
   const [
     { data: recipes, error },
+    { data: allRatings },
+    { data: allComments },
     { data: blocks },
     { data: admins },
     { data: mods }
   ] = await Promise.all([
     supabaseClient.from('recipes').select('*, profiles(username)').order('created_at', { ascending: false }),
+    supabaseClient.from('recipe_ratings').select('recipe_id, user_id, rating'),
+    supabaseClient.from('recipe_comments').select('*, profiles(username)').order('created_at', { ascending: true }),
     currentUser ? supabaseClient.from('blocked_users').select('blocked_id').eq('blocker_id', currentUser.id) : { data: [] },
     supabaseClient.from('admins').select('user_id'),
     supabaseClient.from('moderators').select('user_id')
@@ -244,6 +248,70 @@ async function fetchVaultRecipes() {
     const isAuthorStaff = staffUserIds.has(r.user_id);
     const isAuthorBlocked = blockedUserIds.has(r.user_id);
 
+    // --- Ratings Calculation ---
+    const recipeRatings = (allRatings || []).filter(rt => rt.recipe_id === r.id);
+    const ratingCount = recipeRatings.length;
+    const avgRating = ratingCount > 0
+      ? (recipeRatings.reduce((sum, rt) => sum + rt.rating, 0) / ratingCount).toFixed(1)
+      : null;
+    const userRatingObj = currentUser ? recipeRatings.find(rt => rt.user_id === currentUser.id) : null;
+    const userRating = userRatingObj ? userRatingObj.rating : 0;
+
+    const starButtonsHtml = [1, 2, 3, 4, 5].map(star => {
+      const isFilled = star <= userRating;
+      return `<button type="button" onclick="rateRecipe('${r.id}', ${star})" title="Rate ${star} star${star > 1 ? 's' : ''}" class="text-base sm:text-sm leading-none transition transform hover:scale-110 ${isFilled ? 'text-amber-400' : 'text-gray-600 hover:text-amber-300'}">★</button>`;
+    }).join('');
+
+    const ratingBarHtml = `
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-800/80">
+        <div class="flex items-center gap-1.5 text-xs">
+          <span class="text-amber-400 font-bold">★ ${avgRating ? avgRating : 'No ratings'}</span>
+          <span class="text-gray-500">${ratingCount > 0 ? `(${ratingCount})` : ''}</span>
+        </div>
+        ${currentUser ? `
+          <div class="flex items-center gap-1">
+            <span class="text-[11px] text-gray-400 mr-1">${userRating ? 'Your rating:' : 'Rate:'}</span>
+            ${starButtonsHtml}
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    // --- Comments Section ---
+    const recipeComments = (allComments || []).filter(c => c.recipe_id === r.id);
+    const commentsListHtml = recipeComments.length > 0
+      ? recipeComments.map(c => {
+          const canDeleteComment = (currentUser && c.user_id === currentUser.id) || isMod;
+          return `
+            <div class="bg-gray-950/70 border border-gray-800/80 rounded-lg px-2.5 py-2 flex justify-between items-start gap-2">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-amber-500/90 truncate">${c.profiles?.username || 'Anonymous'}</p>
+                <p class="text-xs text-gray-300 break-words mt-0.5">${escapeHtml(c.content)}</p>
+              </div>
+              ${canDeleteComment ? `<button type="button" onclick="deleteComment('${c.id}')" class="text-[11px] text-gray-500 hover:text-red-400 shrink-0 px-1" title="Delete comment">&times;</button>` : ''}
+            </div>
+          `;
+        }).join('')
+      : `<p class="text-[11px] text-gray-500">No comments yet.</p>`;
+
+    const commentFormHtml = currentUser ? `
+      <form onsubmit="submitComment(event, '${r.id}')" class="flex gap-2 pt-1">
+        <input id="comment-input-${r.id}" type="text" placeholder="Write a comment..." required class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-base sm:text-xs text-gray-200 focus:outline-none focus:border-amber-500" />
+        <button type="submit" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-amber-500 font-semibold px-3 py-1.5 rounded-lg text-xs transition shrink-0">Post</button>
+      </form>
+    ` : '';
+
+    const commentsSectionHtml = `
+      <div class="pt-2 border-t border-gray-800/80 space-y-2">
+        <p class="text-xs font-semibold text-gray-300">💬 Comments (${recipeComments.length})</p>
+        <div class="space-y-1.5 max-h-40 overflow-y-auto pr-0.5">
+          ${commentsListHtml}
+        </div>
+        ${commentFormHtml}
+      </div>
+    `;
+
+    // --- Attachments & Action Buttons ---
     let attachmentHtml = '';
     if (r.media_url) {
       if (r.file_type === 'pdf') {
@@ -255,7 +323,6 @@ async function fetchVaultRecipes() {
 
     const canDelete = isAuthorSelf || isMod;
 
-    // Block / Unblock Button (Only shown for other users who are NOT Mods or Admins)
     let blockBtnHtml = '';
     if (currentUser && !isAuthorSelf && !isAuthorStaff) {
       if (isAuthorBlocked) {
@@ -265,7 +332,6 @@ async function fetchVaultRecipes() {
       }
     }
 
-    // Staff Hide/Unhide Button
     const hideBtnHtml = isMod
       ? `<button type="button" onclick="toggleHideRecipe('${r.id}', ${!r.is_hidden})" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded transition">${r.is_hidden ? 'Unhide' : 'Hide'}</button>`
       : '';
@@ -278,7 +344,6 @@ async function fetchVaultRecipes() {
       ? `<span class="inline-block bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Hidden from public</span>`
       : '';
 
-    // Blocked Post Placeholder Banner
     const blockedBannerHtml = isAuthorBlocked ? `
       <div id="blocked-placeholder-${r.id}" class="flex flex-col items-center justify-center text-center py-6 px-4 space-y-3">
         <p class="text-xs text-gray-400">🚫 You have blocked this user's post.</p>
@@ -293,9 +358,8 @@ async function fetchVaultRecipes() {
       </div>
     ` : '';
 
-    // Actual Recipe Content (hidden initially if author is blocked)
     const recipeBodyHtml = `
-      <div id="recipe-body-${r.id}" class="${isAuthorBlocked ? 'hidden' : ''} space-y-2">
+      <div id="recipe-body-${r.id}" class="${isAuthorBlocked ? 'hidden' : ''} space-y-2.5">
         <div class="flex flex-wrap justify-between items-start gap-2">
           <div class="min-w-0 flex-1">
             ${hiddenBadge}
@@ -315,6 +379,8 @@ async function fetchVaultRecipes() {
           <strong>Instructions:</strong> <p class="text-gray-400">${r.instructions}</p>
         </div>
         ${attachmentHtml}
+        ${ratingBarHtml}
+        ${commentsSectionHtml}
       </div>
     `;
 
@@ -766,5 +832,72 @@ async function deleteOwnAccount() {
       btn.disabled = false;
       btn.textContent = "Delete Account";
     }
+  }
+}
+
+// ==========================================
+// RATINGS & COMMENTS
+// ==========================================
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function rateRecipe(recipeId, ratingValue) {
+  if (!currentUser) return alert("Please sign in to rate recipes.");
+
+  const { error } = await supabaseClient
+    .from('recipe_ratings')
+    .upsert(
+      { recipe_id: recipeId, user_id: currentUser.id, rating: ratingValue },
+      { onConflict: 'recipe_id,user_id' }
+    );
+
+  if (error) {
+    alert("Error saving rating: " + error.message);
+  } else {
+    fetchVaultRecipes();
+  }
+}
+
+async function submitComment(event, recipeId) {
+  event.preventDefault();
+  if (!currentUser) return alert("Please sign in to comment.");
+
+  const input = document.getElementById(`comment-input-${recipeId}`);
+  const content = input?.value.trim();
+  if (!content) return;
+
+  input.disabled = true;
+
+  const { error } = await supabaseClient
+    .from('recipe_comments')
+    .insert([{ recipe_id: recipeId, user_id: currentUser.id, content }]);
+
+  if (error) {
+    alert("Error posting comment: " + error.message);
+    input.disabled = false;
+  } else {
+    input.value = "";
+    fetchVaultRecipes();
+  }
+}
+
+async function deleteComment(commentId) {
+  if (!confirm("Delete this comment?")) return;
+
+  const { error } = await supabaseClient
+    .from('recipe_comments')
+    .delete()
+    .eq('id', commentId);
+
+  if (error) {
+    alert("Error deleting comment: " + error.message);
+  } else {
+    fetchVaultRecipes();
   }
 }
